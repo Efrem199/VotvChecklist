@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 import type { Location, TaskDef, MarkerKind } from "@/data/locations";
 import type { LocState, LocProgress } from "@/lib/state";
@@ -80,6 +80,7 @@ export default function LocationRow({
   onRitualStep,
 }: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => { if (selected) setDetailsOpen(true); }, [selected]);
   const [imageFailed, setImageFailed] = useState(false);
@@ -89,7 +90,7 @@ export default function LocationRow({
   const acquisition = acquisitionFor(loc.id);
   const status = progress.complete ? "done" : progress.started ? "partial" : "none";
   const hasCoords = typeof loc.x === "number" && typeof loc.y === "number";
-  const showNote = noteOpen;
+  const showNote = noteOpen || detailsOpen;
 
   return (
     <li
@@ -130,7 +131,7 @@ export default function LocationRow({
               {progress.complete && <span className="text-[10px] uppercase tracking-[0.2em] text-phos-500">✓ закрыто</span>}
             </div>
             {loc.desc && <p className="mt-0.5 text-xs leading-snug text-phos-500">{loc.desc}</p>}
-            {ls.note && !noteOpen && (
+            {ls.note && !showNote && (
               <p className="mt-1 truncate text-xs italic text-amber-glow/80">✎ {ls.note}</p>
             )}
           </div>
@@ -150,17 +151,17 @@ export default function LocationRow({
           <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`Подробности: ${loc.name}`}>ℹ подробно</button>
           <button
             type="button"
-            onClick={() => setNoteOpen((v) => !v)}
+            onClick={() => { if (detailsOpen) noteRef.current?.focus(); else setNoteOpen(v => !v); }}
             className={cn(
               "border px-2 py-1 text-[11px] transition",
               ls.note
                 ? "border-amber-glow/50 text-amber-glow"
                 : "border-ink-600 text-phos-700 hover:border-phos-700 hover:text-phos-500",
-              noteOpen && "bg-ink-800",
+              showNote && "bg-ink-800",
             )}
             title="Заметка"
             aria-label={`Заметка: ${loc.name}`}
-            aria-expanded={noteOpen}
+            aria-expanded={showNote}
           >
             ✎
           </button>
@@ -203,19 +204,22 @@ export default function LocationRow({
           {steps && <fieldset className="mt-4"><legend className="text-phos-300">Шаги ритуала</legend><p className="text-xs text-phos-600">Отметки шагов независимы от отметки «Найдено».</p><ol className="mt-2 space-y-2">{steps.map((step, i) => { const key = `${loc.id}:${i}`; return <li key={key}><label className="flex cursor-pointer gap-2"><input type="checkbox" checked={Boolean(ritualSteps[key])} onChange={e => onRitualStep(key, e.target.checked)} /><span>{step}</span></label></li>; })}</ol></fieldset>}
           {loc.source && <p className="mt-3"><a className="text-phos-400 underline" href={loc.source} target="_blank" rel="noreferrer">Описание на вики ↗</a></p>}
           <div className="mt-3 flex flex-wrap gap-2">{tasks.map(t=><TaskChip key={t.key} label={t.label} checked={Boolean(ls.done[t.key])} tone={toneFor(t.key)} onToggle={()=>onToggle(t.key)} />)}</div>
-          <label className="mt-3 block text-xs text-phos-600">Заметка<textarea value={ls.note} onChange={e=>onNote(e.target.value)} className="input-term mt-1" rows={2} /></label>
         </div>
       )}
       {showNote && (
         <div className="animate-rise px-3 pb-3 pl-14">
+          <label className="block text-xs text-phos-600">
+          Заметка
           <textarea
+            ref={noteRef}
             value={ls.note}
             onChange={(e) => onNote(e.target.value)}
             placeholder="Заметка: что оставил, что сломано, куда смотрит камера…"
             rows={2}
             className="input-term resize-y text-xs"
-            autoFocus
+            autoFocus={noteOpen && !detailsOpen}
           />
+          </label>
         </div>
       )}
     </li>

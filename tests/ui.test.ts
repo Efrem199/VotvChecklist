@@ -44,3 +44,33 @@ test('карточка показывает разногласие источн�
  assert.ok(view.getByRole('link',{name:/Раскопки/}).getAttribute('href')?.includes('oldid=24727'));
  cleanup();
 });
+
+test('заметка не дублируется при открытии карточки и сохраняет текст', () => {
+ const loc=BUILTIN_LOCATIONS.find(l=>l.id==='dish-b')!;
+ function Row() {
+  const [note,setNote]=React.useState('');
+  return React.createElement('ul',null,React.createElement(LocationRow,{loc,tasks:DEFAULT_TASKS.dishes,ls:{done:{},note},progress:{done:0,total:3,complete:false,started:false},selected:false,flash:false,onToggle:()=>{},onNote:setNote,onSelect:()=>{},onHover:()=>{},ritualSteps:{},onRitualStep:()=>{}}));
+ }
+ const view=render(React.createElement(Row));
+ const noteButton=view.getByRole('button',{name:`Заметка: ${loc.name}`});
+ const details=view.getByRole('button',{name:`Подробности: ${loc.name}`});
+ fireEvent.click(noteButton);
+ let input=view.getByRole('textbox',{name:'Заметка'}) as HTMLTextAreaElement;
+ fireEvent.change(input,{target:{value:'Мой текст'}});
+ fireEvent.click(details);
+ assert.equal(view.getAllByRole('textbox',{name:'Заметка'}).length,1);
+ input=view.getByRole('textbox',{name:'Заметка'}) as HTMLTextAreaElement;
+ assert.equal(input.value,'Мой текст');
+ fireEvent.click(noteButton);
+ assert.equal(document.activeElement,input);
+ assert.equal(view.getAllByRole('textbox',{name:'Заметка'}).length,1);
+ fireEvent.click(details);
+ assert.equal((view.getByRole('textbox',{name:'Заметка'}) as HTMLTextAreaElement).value,'Мой текст');
+ fireEvent.click(noteButton);
+ assert.equal(view.queryByRole('textbox',{name:'Заметка'}),null);
+ fireEvent.click(details);
+ assert.equal((view.getByRole('textbox',{name:'Заметка'}) as HTMLTextAreaElement).value,'Мой текст');
+ fireEvent.click(noteButton);
+ assert.equal(view.getAllByRole('textbox',{name:'Заметка'}).length,1);
+ cleanup();
+});
