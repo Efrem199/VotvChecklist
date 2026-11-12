@@ -24,6 +24,8 @@ test('достижения, профили, спойлеры, глобальны
   const mark=(name:RegExp)=>view.getByRole('checkbox',{name}) as HTMLInputElement;
   assert.ok(view.getByRole('heading',{name:'ДОСТИЖЕНИЯ'}));
   assert.equal(view.queryByRole('heading',{name:'Super burger finder'}),null);
+  assert.equal(view.queryByText(/Найдите каждый сэндвич/),null);
+  assert.equal(view.queryByAltText('Пример: сэндвич в серверной базы'),null);
   fireEvent.click(mark(/Получено: Sandbox unlocked/));
   await waitFor(()=>assert.equal(JSON.parse(dom.window.localStorage.getItem(ACHIEVEMENTS_KEY)!).marks.sandbox,true));
   fireEvent.click(view.getByRole('button',{name:'Advancements сохранения'}));
@@ -45,6 +47,19 @@ test('достижения, профили, спойлеры, глобальны
   assert.ok(view.getByRole('heading',{name:'Super burger finder'}));
   assert.equal(view.getByRole('checkbox',{name:'Показать спойлеры'}).checked,true);
   assert.equal(view.getByRole('link',{name:'Связанная коллекция в журнале ↗'}).getAttribute('href'),'#/journal?collection=sandwiches');
+  assert.equal(view.queryByText(/Найдите каждый сэндвич/),null);
+  assert.equal(view.queryByAltText('Пример: сэндвич в серверной базы'),null);
+  const details=view.getByText('Как получить · пошаговый гайд').closest('details')!;
+  details.open=true; fireEvent(details,new dom.window.Event("toggle"));
+  assert.ok(view.getByText(/Найдите каждый сэндвич/));
+  const guideImage=view.getByAltText('Пример: сэндвич в серверной базы') as HTMLImageElement;
+  fireEvent.error(guideImage); assert.equal(guideImage.hidden,true);
+  assert.ok(view.getByRole('link',{name:/Пример: сэндвич в серверной базы/}));
+  details.open=false; fireEvent(details,new dom.window.Event("toggle"));
+  assert.equal(view.queryByAltText('Пример: сэндвич в серверной базы'),null);
+  fireEvent.click(view.getByRole('checkbox',{name:'Показать спойлеры'}));
+  assert.equal(view.queryByText('Как получить · пошаговый гайд'),null);
+  fireEvent.click(view.getByRole('checkbox',{name:'Показать спойлеры'}));
   navigate('#/journal?collection=sandwiches');
   assert.equal(within(view.getByRole('region',{name:'Коллекции'})).getByRole('button',{name:/Сэндвичи/}).getAttribute('aria-pressed'),'true');
   assert.ok(document.querySelector('#loc-burger-server'));

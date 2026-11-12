@@ -1,10 +1,27 @@
 import { useState } from 'react';
 import bg from '@/assets/bg.jpg';
 import { ACHIEVEMENTS, ACHIEVEMENTS_SOURCE, type AchievementKind } from '@/data/achievements';
+import { ACHIEVEMENT_GUIDES, type AchievementGuide } from '@/data/achievementGuides';
 import type { Marks } from '@/lib/achievements';
 import type { Location } from '@/data/locations';
 import type { LocState } from '@/lib/state';
 import SiteNav from './SiteNav';
+
+function Guide({ guide }: { guide: AchievementGuide }) {
+  const [open, setOpen] = useState(false);
+  return <details className="mt-3 border-t border-phos-900 pt-3" onToggle={e => setOpen(e.currentTarget.open)}>
+    <summary className="cursor-pointer text-sm font-bold text-phos-300">Как получить · пошаговый гайд</summary>
+    {open && <div className="mt-3 space-y-3 text-sm leading-relaxed">
+      <ol className="list-decimal space-y-2 pl-5">{guide.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+      {guide.note && <p className="border-l-2 border-amber-glow pl-3 text-xs leading-relaxed text-amber-glow">Важно: {guide.note}</p>}
+      {guide.images && <div className="flex flex-wrap gap-3">{guide.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500">
+        <a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full rounded object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/thumb/${image.file}/480px-${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a>
+      </figure>)}</div>}
+      {guide.images && <p className="text-xs text-phos-500">Изображения: Voices of the Void Wiki; права принадлежат MrDrNose и/или соответствующим правообладателям. Если изображение недоступно, откройте ссылку под ним.</p>}
+      {guide.sources && <div className="flex flex-wrap gap-3 text-xs">{guide.sources.map(source => <a key={source.url} className="text-phos-400 underline" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div>}
+    </div>}
+  </details>;
+}
 
 type Props = {
   locations: Location[]; progress: Record<string, LocState>; item?: string; globalMarks: Marks; globalError: boolean; globalSaveFailed: boolean;
@@ -28,7 +45,7 @@ export default function AchievementsPage(props: Props) {
     <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden><img src={bg} alt="" className="h-full w-full object-cover object-center opacity-85"/><div className="absolute inset-0 bg-ink-950/85"/><div className="absolute inset-0 noise"/></div><div className="crt-overlay" aria-hidden />
     <div className="relative mx-auto max-w-[1200px] px-3 py-4 sm:px-5 lg:px-8">
       <SiteNav page="achievements" locations={props.locations} progress={props.progress} />
-      <header className="panel corner p-5 sm:p-6"><p className="panel-title">АРХИВ ОПЕРАТОРА / ЧЕК-ЛИСТ</p><h1 className="glow mt-3 font-pixel text-lg leading-relaxed text-phos-300 sm:text-2xl">ДОСТИЖЕНИЯ</h1><p className="mt-3 text-sm leading-relaxed">Отмечайте вручную: сайт не считывает данные игры и не открывает достижения. Общие достижения и advancements сохранения — разные списки.</p><p className="mt-3 border-l-2 border-amber-glow pl-3 text-xs leading-relaxed text-amber-glow">Вики помечает список как незавершённый; условия и награды могут отличаться в вашей версии. Сверка 12.11.2026, в игре не проверено. <a className="underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Ревизия вики ↗</a></p></header>
+      <header className="panel corner p-5 sm:p-6"><p className="panel-title">АРХИВ ОПЕРАТОРА / ЧЕК-ЛИСТ</p><h1 className="glow mt-3 font-pixel text-lg leading-relaxed text-phos-300 sm:text-2xl">ДОСТИЖЕНИЯ</h1><p className="mt-3 text-sm leading-relaxed">Отмечайте вручную: сайт не считывает данные игры и не открывает достижения. Общие достижения и advancements сохранения — разные списки.</p><p className="mt-3 border-l-2 border-amber-glow pl-3 text-xs leading-relaxed text-amber-glow">Вики помечает список как незавершённый; условия и награды могут отличаться в вашей версии. Гайды пересказаны по вики, в игре не проверены. Сверка 12.11.2026. <a className="underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Ревизия вики ↗</a></p></header>
       <main className="mt-4 space-y-4">
         <section className="panel corner p-4" aria-label="Фильтры достижений">
           <div className="flex flex-wrap gap-2"><button type="button" className={`btn-term ${kind === 'achievement' ? 'border-phos-500 text-phos-200' : ''}`} aria-pressed={kind === 'achievement'} onClick={()=>setKind('achievement')}>Достижения игры</button><button type="button" className={`btn-term ${kind === 'advancement' ? 'border-phos-500 text-phos-200' : ''}`} aria-pressed={kind === 'advancement'} onClick={()=>setKind('advancement')}>Advancements сохранения</button></div>
@@ -40,7 +57,7 @@ export default function AchievementsPage(props: Props) {
           {!locked && (kind === 'achievement' ? props.globalSaveFailed : props.profileSaveFailed) && <p role="alert" className="mt-2 text-xs text-alert">Не удалось сохранить отметки в браузере.</p>}
         </section>
         {matching.length === 0 && <p className="panel p-4 text-sm text-phos-500">Ничего не найдено. Проверьте поиск и фильтры спойлеров и старых версий.</p>}
-        <ul className="space-y-2">{matching.map(a=><li key={a.id} className="panel corner p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-sm font-bold text-phos-300">{a.title}{a.legacy && <span className="ml-2 text-xs font-normal text-amber-glow">старая версия</span>}</h2><p className="mt-2 text-sm leading-relaxed">{a.condition}</p><p className="mt-2 text-xs text-phos-500">Награда: {a.reward}</p></div><label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-phos-300"><input type="checkbox" aria-label={`Получено: ${a.title} — ${a.condition}`} disabled={locked} checked={Boolean(marks[a.id])} onChange={e=>props.onMark(a.kind,a.id,e.target.checked)}/> Получено</label></div><div className="mt-3 flex flex-wrap gap-3 text-xs"><a className="text-phos-400 underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Условия на вики ↗</a>{a.locationId && <a href={`#/journal?loc=${encodeURIComponent(a.locationId)}`} className="text-phos-400 underline">Связанная точка в журнале ↗</a>}{a.collection && <a href={`#/journal?collection=${a.collection}`} className="text-phos-400 underline">Связанная коллекция в журнале ↗</a>}</div></li>)}</ul>
+        <ul className="space-y-2">{matching.map(a=><li key={a.id} className="panel corner p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-sm font-bold text-phos-300">{a.title}{a.legacy && <span className="ml-2 text-xs font-normal text-amber-glow">старая версия</span>}</h2><p className="mt-2 text-sm leading-relaxed">{a.condition}</p><p className="mt-2 text-xs text-phos-500">Награда: {a.reward}</p></div><label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-phos-300"><input type="checkbox" aria-label={`Получено: ${a.title} — ${a.condition}`} disabled={locked} checked={Boolean(marks[a.id])} onChange={e=>props.onMark(a.kind,a.id,e.target.checked)}/> Получено</label></div>{ACHIEVEMENT_GUIDES[a.id] && <Guide guide={ACHIEVEMENT_GUIDES[a.id]}/>}<div className="mt-3 flex flex-wrap gap-3 text-xs"><a className="text-phos-400 underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Условия на вики ↗</a>{a.locationId && <a href={`#/journal?loc=${encodeURIComponent(a.locationId)}`} className="text-phos-400 underline">Связанная точка в журнале ↗</a>}{a.collection && <a href={`#/journal?collection=${a.collection}`} className="text-phos-400 underline">Связанная коллекция в журнале ↗</a>}</div></li>)}</ul>
       </main>
     </div>
   </div>;

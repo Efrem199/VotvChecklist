@@ -45,3 +45,14 @@ test('маршруты работают с query и прямыми ссылка�
  assert.equal(parseRoute('#/journal?category=secrets').category,'secrets');
  assert.equal(parseRoute('#/').page,'journal');
 });
+
+test('для каждой записи есть гайд с шагами и корректными источниками', async () => {
+ const { ACHIEVEMENT_GUIDES } = await import('../src/data/achievementGuides');
+ assert.deepEqual(Object.keys(ACHIEVEMENT_GUIDES).sort(), ACHIEVEMENTS.map(a => a.id).sort());
+ for (const [id, guide] of Object.entries(ACHIEVEMENT_GUIDES)) {
+  assert.ok(guide.steps.length > 0, id);
+  assert.ok(guide.steps.every(step => step.trim().length > 0), id);
+  for (const source of guide.sources ?? []) assert.equal(new URL(source.url).hostname, 'voicesofthevoid.wiki.gg', id);
+  for (const image of guide.images ?? []) assert.match(image.file, /^[A-Za-z0-9_]+\.png$/, id);
+ }
+});
