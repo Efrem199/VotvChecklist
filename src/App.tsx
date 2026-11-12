@@ -26,6 +26,7 @@ import AddCustomLocation from "@/components/AddCustomLocation";
 import SiteNav from "@/components/SiteNav";
 import FunPage from "@/components/FunPage";
 import AchievementsPage from "@/components/AchievementsPage";
+import SaveEditorPage from "@/components/SaveEditorPage";
 import { loadAchievementMarks, saveAchievementMarks } from "@/lib/achievements";
 import { parseRoute } from "@/lib/routes";
 
@@ -355,6 +356,7 @@ export default function App() {
       .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
   const backupDue = Date.now() - (state.lastExportAt ?? activeProfile.createdAt) > 7 * 24 * 60 * 60 * 1000;
 
+  if (route.page === 'save-editor') return <SaveEditorPage locations={allLocations} progress={state.progress} />;
   if (route.page === 'fun') return <FunPage key={hash} locations={allLocations} progress={state.progress} initialQuery={route.query} section={route.section} />;
   if (route.page === 'achievements') return <AchievementsPage key={hash} locations={allLocations} progress={state.progress} item={route.item} globalMarks={globalMarks} globalError={globalLoaded.error} globalSaveFailed={globalSaveFailed} advancements={state.advancements} profileName={activeProfile.name} profiles={profiles.profiles} profileId={profiles.activeId} profileError={loaded.error} profileSaveFailed={saveFailed} onProfile={switchProfile} onMark={markAchievement} />;
 

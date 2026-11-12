@@ -22,6 +22,7 @@ export default function SiteNav({ page, locations, progress }: Props) {
     <nav aria-label="Разделы сайта" className="flex flex-wrap items-center gap-2 text-xs">
       <a href="#/" aria-current={page === 'journal' ? 'page' : undefined} className={`btn-term ${page === 'journal' ? 'border-phos-500 text-phos-200' : ''}`}>◈ Журнал обхода</a>
       <a href="#/achievements" aria-current={page === 'achievements' ? 'page' : undefined} className={`btn-term ${page === 'achievements' ? 'border-phos-500 text-phos-200' : ''}`}>★ Достижения</a>
+      <a href="#/save-editor" aria-current={page === 'save-editor' ? 'page' : undefined} className={`btn-term ${page === 'save-editor' ? 'border-phos-500 text-phos-200' : ''}`}>▣ Редактор сохранений</a>
       <a href="#/fun" aria-current={page === 'fun' ? 'page' : undefined} className={`btn-term ${page === 'fun' ? 'border-amber-glow/70 text-amber-glow' : ''}`}>✦ Команды и приколы</a>
     </nav>
     <div className="mt-3 border-t border-phos-800/40 pt-3">
