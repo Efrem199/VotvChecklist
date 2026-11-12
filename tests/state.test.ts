@@ -60,3 +60,11 @@ test('данные: уникальные ID, 21 сэндвич, все вари�
 test('ID не повторяются', () => {
   assert.equal(new Set(Array.from({ length: 10000 }, () => uid('custom'))).size, 10000);
 });
+
+test('планировщик мигрирует и экспортируется вместе с профилем',()=>{
+ const old=defaultState();
+ assert.deepEqual(normalizeState({...old,plannerSteps:undefined}).plannerSteps,{});
+ old.plannerSteps={'omega:blueprint':true,'fishing:craft':false};
+ assert.deepEqual(parseImport(JSON.parse(serializeState(old))).plannerSteps,old.plannerSteps);
+ assert.deepEqual(normalizeState({...old,plannerSteps:{bad:'yes',ok:true}}).plannerSteps,{ok:true});
+});

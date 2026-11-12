@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { routeDistance, routeSupplies } from "@/lib/routePlanner";
 import { clusterPoints } from "@/lib/mapClusters";
 import { cn } from "@/utils/cn";
 import { CANDLE_RADIUS, FENCE, MAP_EXTENT, UPGRADE_KEYS, type Location, type MarkerKind } from "@/data/locations";
@@ -89,9 +90,12 @@ interface Props {
   hoverId: string | null;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
+  routePoints: Location[];
+  routeIds: string[];
+  onRouteChange: (ids: string[]) => void;
 }
 
-export default function ArrayMap({ state, locations, mode, onModeChange, selectedId, hoverId, onSelect, onHover }: Props) {
+export default function ArrayMap({ state, locations, mode, onModeChange, selectedId, hoverId, onSelect, onHover, routePoints, routeIds, onRouteChange }: Props) {
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState({ x: 0, y: 0 });
   const [openCluster, setOpenCluster] = useState<string | null>(null);
@@ -168,6 +172,15 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
         <button type="button" className="btn-term" onClick={() => { setZoom(1); setCenter({x:0,y:0}); setOpenCluster(null); }}>сброс · {zoom}×</button>
       </div>
       <p className="text-xs text-phos-600">Приблизьте и перетащите карту. Число на маркере — группа точек; нажмите, чтобы выбрать.</p>
+      <div className="border border-ink-600 p-3">
+        <h3 className="text-sm text-phos-300">Маршрут по точкам</h3>
+        <p className="mt-1 text-xs text-phos-600">Выберите видимые точки в нужном порядке; фильтры и спойлеры влияют на список.</p>
+        <div className="mt-2 flex flex-wrap gap-2"><select aria-label="Добавить точку маршрута" className="input-term min-w-0 flex-1" value="" onChange={e => { if (e.target.value) onRouteChange([...routeIds, e.target.value]); }}><option value="">Добавить точку…</option>{locations.filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && !routeIds.includes(l.id)).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select><button type="button" className="btn-term" disabled={!routeIds.length} onClick={() => onRouteChange([])}>Очистить</button></div>
+        <ol className="mt-2 space-y-1">{routeIds.map((id,i) => { const loc = locations.find(l=>l.id===id); return <li key={id} className="flex items-center gap-2 text-xs text-phos-400"><span className="flex-1">{i+1}. {loc?.name ?? 'Точка скрыта фильтром'}</span><button type="button" className="btn-term" onClick={() => onRouteChange(routeIds.filter(x=>x!==id))} aria-label={`Убрать ${loc?.name ?? 'точку'} из маршрута`}>×</button></li>; })}</ol>
+        {routePoints.length >= 2 && routePoints.length === routeIds.length && <p className="mt-2 text-sm text-phos-300">≈{Math.round(routeDistance(routePoints))} м по прямым отрезкам. Рельеф и препятствия не учитываются; некоторые маркеры сдвинуты для читаемости, линия использует реальные координаты.</p>}
+        {routePoints.length !== routeIds.length && <p className="mt-2 text-xs text-amber-glow">Некоторые точки скрыты фильтром: маршрут не рассчитан.</p>}
+        {routePoints.length > 0 && <ul className="mt-2 list-inside list-disc text-xs text-phos-400">{routeSupplies(routePoints).map(item=><li key={item}>{item}</li>)}</ul>}
+      </div>
       <div className="relative select-none" onMouseLeave={() => onHover(null)}>
         <svg
           viewBox={`${center.x - radius} ${center.y - radius} ${2 * radius} ${2 * radius}`}
@@ -201,6 +214,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
 
           <rect x={-E} y={-E} width={2 * E} height={2 * E} fill="url(#mapbg)" />
 
+          {routePoints.length >= 2 && routePoints.length === routeIds.length && <polyline points={routePoints.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#ffb454" strokeWidth="4" strokeDasharray="12 8" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
           {/* grid */}
           <g stroke="#15241a" strokeWidth={2.5}>
             {gridLines.map((v) => (

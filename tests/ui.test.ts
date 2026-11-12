@@ -25,7 +25,7 @@ test('карточка загружает изображение только п
 test('группа маркеров раскрывается и точку можно выбрать', () => {
  const locations=BUILTIN_LOCATIONS.filter(l=>['burger-server','burger-toilet'].includes(l.id));
  let selected='';
- const view=render(React.createElement(ArrayMap,{state:defaultState(),locations,mode:'overall',onModeChange:()=>{},selectedId:null,hoverId:null,onSelect:(id:string)=>{selected=id},onHover:()=>{}}));
+ const view=render(React.createElement(ArrayMap,{state:defaultState(),locations,mode:'overall',onModeChange:()=>{},selectedId:null,hoverId:null,onSelect:(id:string)=>{selected=id},onHover:()=>{},routePoints:[],routeIds:[],onRouteChange:()=>{}}));
  fireEvent.click(view.getByRole('button',{name:'Группа: 2 точек'}));
  fireEvent.click(view.getByRole('button',{name:/Сэндвич 01/}));
  assert.equal(selected,'burger-server');

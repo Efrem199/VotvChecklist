@@ -50,16 +50,6 @@ export default function Header({ day, onDay, sound, onToggleSound, stats, onExpo
           <h1 className="glow mt-2 font-pixel text-xl leading-relaxed text-phos-300 sm:text-2xl md:text-3xl">
             ЖУРНАЛ ОБХОДА
           </h1>
-          <p className="mt-2 text-xs text-phos-500">
-            <span className="text-phos-700">&gt;</span> оператор: Dr. Kel · статус:{" "}
-            {creepy ? (
-              <span className="glow-red font-bold uppercase text-alert">не оборачивайся</span>
-            ) : (
-              <span className="text-phos-400">на обходе</span>
-            )}
-            <span className="ml-1 inline-block w-2 animate-blink bg-phos-400 align-middle" style={{ height: "0.9em" }} aria-hidden />
-          </p>
-
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-wider">
             <span className="text-phos-400">
               Прогресс <span className="font-bold text-phos-300">{pct}%</span>
