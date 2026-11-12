@@ -33,6 +33,7 @@ export interface AppState {
   showSecrets: boolean;
   log: LogEntry[];
   ritualSteps: Record<string, boolean>;
+  advancements: Record<string, boolean>;
   lastExportAt?: number;
 }
 
@@ -53,6 +54,7 @@ export function defaultState(): AppState {
     showSecrets: false,
     log: [],
     ritualSteps: {},
+    advancements: {},
     lastExportAt: undefined,
   };
 }
@@ -140,6 +142,7 @@ export function normalizeState(raw: unknown): AppState {
     collapsed,
     showSecrets: Boolean(src.showSecrets),
     ritualSteps: isObject(src.ritualSteps) ? Object.fromEntries(Object.entries(src.ritualSteps).filter(([, value]) => typeof value === "boolean")) as Record<string, boolean> : {},
+    advancements: isObject(src.advancements) ? Object.fromEntries(Object.entries(src.advancements).filter(([, value]) => typeof value === "boolean")) as Record<string, boolean> : {},
     lastExportAt: typeof src.lastExportAt === "number" && Number.isFinite(src.lastExportAt) ? src.lastExportAt : undefined,
     log,
   };

@@ -25,18 +25,24 @@ import EventLog from "@/components/EventLog";
 import AddCustomLocation from "@/components/AddCustomLocation";
 import SiteNav from "@/components/SiteNav";
 import FunPage from "@/components/FunPage";
+import AchievementsPage from "@/components/AchievementsPage";
+import { loadAchievementMarks, saveAchievementMarks } from "@/lib/achievements";
+import { parseRoute } from "@/lib/routes";
 
 
 export default function App() {
-  const [page, setPage] = useState(() => window.location.hash === '#/fun' ? 'fun' : 'journal');
+  const [navigation, setNavigation] = useState(() => ({ hash: window.location.hash, id: 0 }));
+  const hash = navigation.hash;
+  const route = parseRoute(hash);
   useEffect(() => {
-    const navigate = () => {
-      setPage(window.location.hash === '#/fun' ? 'fun' : 'journal');
-      window.scrollTo({ top: 0 });
-    };
+    const navigate = () => { setNavigation(previous => ({ hash: window.location.hash, id: previous.id + 1 })); window.scrollTo({ top: 0 }); };
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
+  const [globalLoaded] = useState(loadAchievementMarks);
+  const [globalMarks, setGlobalMarks] = useState(globalLoaded.marks);
+  const [globalSaveFailed, setGlobalSaveFailed] = useState(false);
+  useEffect(() => { if (!globalLoaded.error) setGlobalSaveFailed(!saveAchievementMarks(globalMarks)); }, [globalLoaded.error, globalMarks]);
   const [loaded] = useState(() => loadProfiles());
   const [profiles, setProfiles] = useState(loaded.data);
   const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
@@ -45,6 +51,7 @@ export default function App() {
     setProfiles(current => ({ ...current, profiles: current.profiles.map(p => p.id === current.activeId ? { ...p, state: typeof update === "function" ? update(p.state) : update } : p) }));
   }, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectionSerial, setSelectionSerial] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("overall");
@@ -225,6 +232,7 @@ export default function App() {
     const loc = byId.get(id);
     if (!loc) return;
     setSelectedId(id);
+    setSelectionSerial(v => v + 1);
     if (!matches(loc)) { setQuery(""); setOnlyUnfinished(false); setOnlyMissing(false); setCollection("all"); }
     if (loc.category === "secrets" && !state.showSecrets) setState(s => ({ ...s, showSecrets: true }));
     if (state.collapsed[loc.category]) {
@@ -263,7 +271,7 @@ export default function App() {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
       const next = parseImport(parsed);
-      if (!window.confirm("Заменить текущий журнал данными из файла?")) return;
+      if (!window.confirm("Заменить текущий журнал и отметки advancements данными из файла?")) return;
       setState(next);
       showToast(`Журнал загружен · день ${next.day}`);
     } catch {
@@ -272,8 +280,8 @@ export default function App() {
   };
 
   const resetAll = () => {
-    if (!window.confirm("Снять ВСЕ отметки и очистить заметки? Свои точки и настройки колонок останутся.")) return;
-    setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets }));
+    if (!window.confirm("Снять отметки журнала и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
+    setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets, advancements: s.advancements }));
     setSelectedId(null);
     showToast("Журнал очищен. Новый обход.");
   };
@@ -306,6 +314,33 @@ export default function App() {
     setOnlyUnfinished(false); setQuery("");
     if (id !== "all") setState(s => ({ ...s, collapsed: { ...s.collapsed, secrets: false } }));
   };
+  // Ссылки поиска и достижений открывают нужный объект после перехода на страницу журнала.
+  useEffect(() => {
+    const target = parseRoute(hash);
+    if (target.page !== 'journal') return;
+    if (target.location) select(target.location);
+    else if (target.category && CATEGORIES.some(c => c.id === target.category)) jumpToCategory(target.category as CategoryId);
+    else if (target.collection && COLLECTIONS.some(c => c.id === target.collection && c.id !== 'all')) {
+      setCollection(target.collection as CollectionId);
+      setOnlyMissing(false); setOnlyUnfinished(false); setQuery('');
+      setState(s => ({ ...s, showSecrets: true, collapsed: { ...s.collapsed, secrets: false } }));
+      window.setTimeout(() => document.getElementById('cat-secrets')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+  // URL является событием навигации; обновления прогресса не должны повторять переход.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation.id]);
+
+  const jumpToCategory = (id: CategoryId) => {
+    setQuery(''); setOnlyUnfinished(false); setOnlyMissing(false); setCollection('all');
+    setState(s => ({ ...s, collapsed: { ...s.collapsed, [id]: false } }));
+    window.setTimeout(() => document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+  const markAchievement = (kind: 'achievement' | 'advancement', id: string, value: boolean) => {
+    if (kind === 'achievement') {
+      if (!globalLoaded.error) setGlobalMarks(m => ({ ...m, [id]: value }));
+    } else if (!loaded.error) setState(s => ({ ...s, advancements: { ...s.advancements, [id]: value } }));
+  };
+
   /* ---------- flavour ---------- */
 
   const trDots = ["tr1", "tr2", "tr3"].map((id) => {
@@ -320,7 +355,8 @@ export default function App() {
       .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
   const backupDue = Date.now() - (state.lastExportAt ?? activeProfile.createdAt) > 7 * 24 * 60 * 60 * 1000;
 
-  if (page === 'fun') return <FunPage />;
+  if (route.page === 'fun') return <FunPage key={hash} locations={allLocations} progress={state.progress} initialQuery={route.query} section={route.section} />;
+  if (route.page === 'achievements') return <AchievementsPage key={hash} locations={allLocations} progress={state.progress} item={route.item} globalMarks={globalMarks} globalError={globalLoaded.error} globalSaveFailed={globalSaveFailed} advancements={state.advancements} profileName={activeProfile.name} profiles={profiles.profiles} profileId={profiles.activeId} profileError={loaded.error} profileSaveFailed={saveFailed} onProfile={switchProfile} onMark={markAchievement} />;
 
   return (
     <div className="relative min-h-screen">
@@ -332,7 +368,7 @@ export default function App() {
       <div className="crt-overlay" aria-hidden />
 
       <div className="relative mx-auto max-w-[1540px] px-3 py-4 sm:px-5 lg:px-8">
-        <SiteNav page="journal" />
+        <SiteNav page="journal" locations={allLocations} progress={state.progress} />
         <Header
           day={state.day}
           onDay={setDay}
@@ -448,6 +484,11 @@ export default function App() {
                 <span className="text-phos-600">Без отметки «Найдено»; остальные колонки не учитываются.</span>
               </div>}
             </section>
+            <nav className="panel corner p-3" aria-label="Быстрый переход к категориям">
+              <p className="panel-title">Перейти к категории</p>
+              <div className="mt-2 flex flex-wrap gap-2">{CATEGORIES.map(cat => <button key={cat.id} type="button" className="btn-term" onClick={() => jumpToCategory(cat.id)}>{cat.title}</button>)}</div>
+              <p className="mt-2 text-xs text-phos-600">Переход сбрасывает фильтры списка; скрытые спойлеры останутся скрытыми.</p>
+            </nav>
             {CATEGORIES.map((cat) => {
               const all = byCategory[cat.id];
               const visible = all.filter(matches);
@@ -460,6 +501,7 @@ export default function App() {
                   visible={visible}
                   tasks={tasksFor(state, cat.id)}
                   selectedId={selectedId}
+                  selectionSerial={selectionSerial}
                   flashId={flashId}
                   onToggleCollapse={() => toggleCollapse(cat.id)}
                   onToggleTask={toggleTask}

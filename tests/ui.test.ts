@@ -115,5 +115,9 @@ test('выбор точки на карте раскрывает соответ�
  assert.equal(heading.getAttribute('aria-expanded'),'true');
  fireEvent.click(heading);
  assert.equal(heading.getAttribute('aria-expanded'),'false');
+ view.rerender(React.createElement(LocationRow,{...props,selected:true,selectionSerial:1}));
+ assert.equal(heading.getAttribute('aria-expanded'),'true');
+ fireEvent.click(heading);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
  cleanup();
 });

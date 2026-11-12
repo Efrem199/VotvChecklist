@@ -14,6 +14,7 @@ interface Props {
   ls: LocState;
   progress: LocProgress;
   selected: boolean;
+  selectionSerial?: number;
   flash: boolean;
   onToggle: (taskKey: string) => void;
   onNote: (text: string) => void;
@@ -70,6 +71,7 @@ export default function LocationRow({
   ls,
   progress,
   selected,
+  selectionSerial,
   flash,
   onToggle,
   onNote,
@@ -82,7 +84,7 @@ export default function LocationRow({
   const [noteOpen, setNoteOpen] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  useEffect(() => { if (selected) setDetailsOpen(true); }, [selected]);
+  useEffect(() => { if (selected) setDetailsOpen(true); }, [selected, selectionSerial]);
   const [imageFailed, setImageFailed] = useState(false);
   const image = wikiImage(loc.id);
   const steps = RITUALS[loc.id];

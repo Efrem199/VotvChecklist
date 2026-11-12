@@ -12,6 +12,7 @@ interface Props {
   visible: Location[];
   tasks: TaskDef[];
   selectedId: string | null;
+  selectionSerial: number;
   flashId: string | null;
   onToggleCollapse: () => void;
   onToggleTask: (locId: string, key: string) => void;
@@ -38,6 +39,7 @@ export default function CategorySection({
   visible,
   tasks,
   selectedId,
+  selectionSerial,
   flashId,
   onToggleCollapse,
   onToggleTask,
@@ -230,6 +232,7 @@ export default function CategorySection({
                         ls={state.progress[loc.id] ?? EMPTY_LOC}
                         progress={progressFor(state, loc)}
                         selected={selectedId === loc.id}
+                        selectionSerial={selectionSerial}
                         flash={flashId === loc.id}
                         onToggle={(key) => onToggleTask(loc.id, key)}
                         onNote={(text) => onNote(loc.id, text)}
