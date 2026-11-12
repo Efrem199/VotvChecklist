@@ -1,0 +1,38 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
+import { build } from 'esbuild';
+import { rm } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import React from 'react';
+import { STORAGE_KEY, defaultState } from '../src/lib/state';
+import { PROFILES_KEY } from '../src/lib/profiles';
+
+test('приложение переносит старые данные и изолирует профили при переключении', async () => {
+ const dom = new JSDOM('<!doctype html><html><body></body></html>',{url:'https://example.com/'});
+ Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Element:dom.window.Element,localStorage:dom.window.localStorage,requestAnimationFrame:(fn:()=>void)=>setTimeout(fn,0)});
+ dom.window.requestAnimationFrame = (fn) => setTimeout(fn,0) as unknown as number;
+ dom.window.confirm = () => true;
+ dom.window.prompt = () => 'Второе прохождение';
+ dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+ const old=defaultState(); old.sound=false; old.progress['dish-b']={done:{visited:true},note:'старый журнал'};
+ dom.window.localStorage.setItem(STORAGE_KEY,JSON.stringify(old));
+ const out='.app-test-bundle.mjs';
+ try {
+  await build({entryPoints:['src/App.tsx'],bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.jpg':'dataurl'},outfile:out,logLevel:'silent'});
+  const {default: App}=await import(pathToFileURL(process.cwd()+'/'+out).href);
+  const {render,fireEvent,cleanup,waitFor}=await import('@testing-library/react');
+  const view=render(React.createElement(App));
+  const select=view.getByLabelText('Выбрать прохождение') as HTMLSelectElement;
+  assert.equal(select.value,'default');
+  const bravo=()=>document.querySelector('#loc-dish-b')!;
+  assert.match(bravo().textContent!,/старый журнал/);
+  fireEvent.click(view.getByRole('button',{name:'+ новое'}));
+  assert.notEqual(select.value,'default');
+  assert.doesNotMatch(bravo().textContent!,/старый журнал/);
+  fireEvent.change(select,{target:{value:'default'}});
+  assert.match(bravo().textContent!,/старый журнал/);
+  await waitFor(()=>assert.equal(JSON.parse(dom.window.localStorage.getItem(PROFILES_KEY)!).profiles.length,2));
+  cleanup();
+ } finally { await rm(out,{force:true}); dom.window.close(); }
+});

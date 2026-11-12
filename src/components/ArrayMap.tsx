@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import { clusterPoints } from "@/lib/mapClusters";
 import { cn } from "@/utils/cn";
 import { CANDLE_RADIUS, FENCE, MAP_EXTENT, UPGRADE_KEYS, type Location, type MarkerKind } from "@/data/locations";
 import { EMPTY_LOC, progressFor, tasksFor, type AppState } from "@/lib/state";
@@ -91,6 +92,14 @@ interface Props {
 }
 
 export default function ArrayMap({ state, locations, mode, onModeChange, selectedId, hoverId, onSelect, onHover }: Props) {
+  const [zoom, setZoom] = useState(1);
+  const [center, setCenter] = useState({ x: 0, y: 0 });
+  const [openCluster, setOpenCluster] = useState<string | null>(null);
+  const drag = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
+  const radius = E / zoom;
+  const clampCenter = (v: number) => Math.max(-E + radius, Math.min(E - radius, v));
+  const pan = (dx: number, dy: number) => setCenter(c => ({ x: clampCenter(c.x + dx), y: clampCenter(c.y + dy) }));
+  const changeZoom = (next: number) => { const z = Math.max(1, Math.min(4, next)); const r = E / z; setZoom(z); setCenter(c => ({ x: Math.max(-E+r,Math.min(E-r,c.x)), y: Math.max(-E+r,Math.min(E-r,c.y)) })); setOpenCluster(null); };
   const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   const placed = useMemo(
@@ -104,6 +113,12 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
     [locations, state, mode],
   );
 
+  const clusters = useMemo(() => clusterPoints(placed, 70 / zoom).map(items => ({
+    key: items.map(p => p.loc.id).sort().join('|'), items,
+    px: items.reduce((n,p)=>n+p.px,0)/items.length,
+    py: items.reduce((n,p)=>n+p.py,0)/items.length,
+  })), [placed, zoom]);
+  const opened = clusters.find(c => c.key === openCluster);
   const activeId = hoverId ?? selectedId;
   const active = placed.find((p) => p.loc.id === activeId) ?? null;
 
@@ -115,10 +130,11 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
     const tasks = tasksFor(state, active.loc.category);
     const ls = state.progress[active.loc.id] ?? EMPTY_LOC;
     const done = tasks.filter((t) => ls.done[t.key]).map((t) => t.label);
-    const l = ((active.px + E) / (2 * E)) * 100;
-    const t = ((active.py + E) / (2 * E)) * 100;
+    const l = ((active.px - center.x + radius) / (2 * radius)) * 100;
+    const t = ((active.py - center.y + radius) / (2 * radius)) * 100;
+    if (l < 0 || l > 100 || t < 0 || t > 100) return null;
     return { l, t, done, below: t < 18, loc: active.loc, ls };
-  }, [active, state]);
+  }, [active, state, center, radius]);
 
   const gridLines: number[] = [];
   for (let v = -FENCE; v <= FENCE; v += 100) gridLines.push(v);
@@ -145,10 +161,20 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-1" aria-label="Управление картой">
+        <button type="button" className="btn-term" onClick={() => changeZoom(zoom * 2)} disabled={zoom >= 4} aria-label="Приблизить карту">＋</button>
+        <button type="button" className="btn-term" onClick={() => changeZoom(zoom / 2)} disabled={zoom <= 1} aria-label="Отдалить карту">−</button>
+        <button type="button" className="btn-term" onClick={() => pan(-radius/2,0)} disabled={zoom <= 1} aria-label="Сдвинуть карту влево">←</button><button type="button" className="btn-term" onClick={() => pan(0,-radius/2)} disabled={zoom <= 1} aria-label="Сдвинуть карту вверх">↑</button><button type="button" className="btn-term" onClick={() => pan(0,radius/2)} disabled={zoom <= 1} aria-label="Сдвинуть карту вниз">↓</button><button type="button" className="btn-term" onClick={() => pan(radius/2,0)} disabled={zoom <= 1} aria-label="Сдвинуть карту вправо">→</button>
+        <button type="button" className="btn-term" onClick={() => { setZoom(1); setCenter({x:0,y:0}); setOpenCluster(null); }}>сброс · {zoom}×</button>
+      </div>
+      <p className="text-xs text-phos-600">Приблизьте и перетащите карту. Число на маркере — группа точек; нажмите, чтобы выбрать.</p>
       <div className="relative select-none" onMouseLeave={() => onHover(null)}>
         <svg
-          viewBox={`${-E} ${-E} ${2 * E} ${2 * E}`}
-          className="block h-auto w-full"
+          viewBox={`${center.x - radius} ${center.y - radius} ${2 * radius} ${2 * radius}`}
+          className="block h-auto w-full" style={{ touchAction: zoom > 1 ? "none" : "auto" }}
+          onPointerDown={e => { if (zoom <= 1 || (e.target as Element).closest('[data-marker]')) return; drag.current = {x:e.clientX,y:e.clientY,cx:center.x,cy:center.y}; e.currentTarget.setPointerCapture(e.pointerId); }}
+          onPointerMove={e => { if (!drag.current) return; const box=e.currentTarget.getBoundingClientRect(); setCenter({x:clampCenter(drag.current.cx-(e.clientX-drag.current.x)*2*radius/box.width),y:clampCenter(drag.current.cy-(e.clientY-drag.current.y)*2*radius/box.height)}); }}
+          onPointerUp={() => { drag.current=null; }} onPointerCancel={() => { drag.current=null; }}
           role="group"
           aria-label="Схема массива Dunkeltaler Forest"
         >
@@ -258,7 +284,10 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
           </text>
 
           {/* markers */}
-          {placed.map(({ loc, px, py, status }) => {
+          {clusters.map(cluster => {
+            const { items, px, py } = cluster;
+            if (items.length > 1) return <g key={cluster.key} data-marker="cluster" className="cursor-pointer map-marker" role="button" tabIndex={0} aria-label={`Группа: ${items.length} точек`} transform={`translate(${px} ${py})`} onClick={() => setOpenCluster(cluster.key)} onKeyDown={e => { if(e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenCluster(cluster.key); } }}><circle r={32 / zoom} fill="#17351c" stroke="#6cff5c" strokeWidth={3 / zoom} /><text textAnchor="middle" dominantBaseline="central" fontSize={25 / zoom} fill="#e9ffe6">{items.length}</text></g>;
+            const { loc, status } = items[0];
             const isActive = activeId === loc.id;
             const isSelected = selectedId === loc.id;
             const ls = state.progress[loc.id] ?? EMPTY_LOC;
@@ -269,7 +298,8 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
             return (
               <g
                 key={loc.id}
-                transform={`translate(${px} ${py})`}
+                data-marker="point"
+                transform={`translate(${px} ${py}) scale(${1 / zoom})`}
                 className="cursor-pointer map-marker"
                 role="button"
                 tabIndex={0}
@@ -357,6 +387,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
         )}
       </div>
 
+      {opened && <div className="border border-phos-700 p-3"><div className="flex justify-between gap-2"><p className="text-xs text-phos-300">Точки в группе ({opened.items.length})</p><button type="button" className="btn-term" onClick={() => setOpenCluster(null)}>закрыть</button></div><ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">{opened.items.map(({loc})=><li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => { setOpenCluster(null); onSelect(loc.id); }}>{loc.name}{typeof loc.x === 'number' && ` · X:${loc.x} Y:${loc.y}`}</button></li>)}</ul></div>}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider text-phos-600">
         <span>○ тарелка</span>
         <span>□ трансформатор</span>

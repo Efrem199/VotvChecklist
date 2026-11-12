@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/utils/cn";
 import type { Location, TaskDef, MarkerKind } from "@/data/locations";
 import type { LocState, LocProgress } from "@/lib/state";
+import { wikiImage } from "@/data/wikiImages";
+import { RITUALS } from "@/data/rituals";
 import TaskChip, { toneFor } from "./TaskChip";
 
 interface Props {
@@ -16,6 +18,8 @@ interface Props {
   onSelect: () => void;
   onHover: (hover: boolean) => void;
   onRemove?: () => void;
+  ritualSteps: Record<string, boolean>;
+  onRitualStep: (key: string, value: boolean) => void;
 }
 
 function Glyph({ kind, code, status }: { kind: MarkerKind; code?: string; status: "none" | "partial" | "done" }) {
@@ -70,8 +74,15 @@ export default function LocationRow({
   onSelect,
   onHover,
   onRemove,
+  ritualSteps,
+  onRitualStep,
 }: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  useEffect(() => { if (selected) setDetailsOpen(true); }, [selected]);
+  const [imageFailed, setImageFailed] = useState(false);
+  const image = wikiImage(loc.id);
+  const steps = RITUALS[loc.id];
   const status = progress.complete ? "done" : progress.started ? "partial" : "none";
   const hasCoords = typeof loc.x === "number" && typeof loc.y === "number";
   const showNote = noteOpen;
@@ -132,6 +143,7 @@ export default function LocationRow({
               onToggle={() => onToggle(t.key)}
             />
           ))}
+          <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`Подробности: ${loc.name}`}>ℹ подробно</button>
           <button
             type="button"
             onClick={() => setNoteOpen((v) => !v)}
@@ -167,6 +179,18 @@ export default function LocationRow({
         </div>
       </div>
 
+      {detailsOpen && (
+        <div className="border-t border-phos-800/40 bg-ink-950/60 p-4 text-sm text-phos-200">
+          <h3 className="font-bold text-phos-300">{loc.name}</h3>
+          {hasCoords ? <p className="mt-1 tabular-nums text-phos-500">X: {loc.x} · Y: {loc.y}</p> : <p className="mt-1 text-phos-600">Точные координаты не указаны.</p>}
+          {loc.desc && <p className="mt-2">{loc.desc}</p>}
+          {image && <div className="mt-3"><p className="mb-2 text-xs text-phos-600">Изображение загружается с Voices of the Void Wiki и может содержать спойлеры.</p>{!imageFailed ? <a href={image.file} target="_blank" rel="noreferrer"><img src={image.url} alt={`Расположение: ${loc.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className="max-h-72 max-w-full border border-phos-700 object-contain" /></a> : <p className="text-xs text-amber-glow">Не удалось загрузить изображение; <a href={image.file} target="_blank" rel="noreferrer" className="underline">открыть файл на вики</a>.</p>}<a href={image.file} target="_blank" rel="noreferrer" className="text-xs text-phos-400 underline">Страница файла и права ↗</a></div>}
+          {steps && <fieldset className="mt-4"><legend className="text-phos-300">Шаги ритуала</legend><p className="text-xs text-phos-600">Отметки шагов независимы от отметки «Найдено».</p><ol className="mt-2 space-y-2">{steps.map((step, i) => { const key = `${loc.id}:${i}`; return <li key={key}><label className="flex cursor-pointer gap-2"><input type="checkbox" checked={Boolean(ritualSteps[key])} onChange={e => onRitualStep(key, e.target.checked)} /><span>{step}</span></label></li>; })}</ol></fieldset>}
+          {loc.source && <p className="mt-3"><a className="text-phos-400 underline" href={loc.source} target="_blank" rel="noreferrer">Описание на вики ↗</a></p>}
+          <div className="mt-3 flex flex-wrap gap-2">{tasks.map(t=><TaskChip key={t.key} label={t.label} checked={Boolean(ls.done[t.key])} tone={toneFor(t.key)} onToggle={()=>onToggle(t.key)} />)}</div>
+          <label className="mt-3 block text-xs text-phos-600">Заметка<textarea value={ls.note} onChange={e=>onNote(e.target.value)} className="input-term mt-1" rows={2} /></label>
+        </div>
+      )}
       {showNote && (
         <div className="animate-rise px-3 pb-3 pl-14">
           <textarea

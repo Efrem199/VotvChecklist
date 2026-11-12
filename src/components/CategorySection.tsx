@@ -16,6 +16,7 @@ interface Props {
   onToggleCollapse: () => void;
   onToggleTask: (locId: string, key: string) => void;
   onNote: (locId: string, text: string) => void;
+  onRitualStep: (key: string, value: boolean) => void;
   onSelect: (locId: string) => void;
   onHover: (locId: string | null) => void;
   onRemoveCustom?: (locId: string) => void;
@@ -41,6 +42,7 @@ export default function CategorySection({
   onToggleCollapse,
   onToggleTask,
   onNote,
+  onRitualStep,
   onSelect,
   onHover,
   onRemoveCustom,
@@ -221,6 +223,8 @@ export default function CategorySection({
                     <LocationRow
                       key={loc.id}
                       loc={loc}
+                      ritualSteps={state.ritualSteps}
+                      onRitualStep={onRitualStep}
                       tasks={tasks}
                       ls={state.progress[loc.id] ?? EMPTY_LOC}
                       progress={progressFor(state, loc)}

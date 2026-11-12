@@ -6,17 +6,17 @@ import {
   EMPTY_LOC,
   customToLocation,
   defaultState,
-  loadState,
   parseImport,
   LOG_LIMIT,
   progressFor,
-  saveState,
   serializeState,
   tasksFor,
   uid,
   type AppState,
   type LogEntry,
 } from "@/lib/state";
+import { loadProfiles, saveProfiles } from "@/lib/profiles";
+import { COLLECTIONS, collectionMatches, type CollectionId } from "@/data/collections";
 import { blip, chime, tick } from "@/lib/sound";
 import Header, { type OverallStats } from "@/components/Header";
 import ArrayMap, { type MapMode } from "@/components/ArrayMap";
@@ -26,20 +26,29 @@ import AddCustomLocation from "@/components/AddCustomLocation";
 
 
 export default function App() {
-  const [state, setState] = useState<AppState>(() => loadState());
+  const [loaded] = useState(() => loadProfiles());
+  const [profiles, setProfiles] = useState(loaded.data);
+  const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
+  const state = activeProfile.state;
+  const setState = useCallback((update: AppState | ((current: AppState) => AppState)) => {
+    setProfiles(current => ({ ...current, profiles: current.profiles.map(p => p.id === current.activeId ? { ...p, state: typeof update === "function" ? update(p.state) : update } : p) }));
+  }, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("overall");
   const [query, setQuery] = useState("");
   const [onlyUnfinished, setOnlyUnfinished] = useState(false);
+  const [collection, setCollection] = useState<CollectionId>("all");
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [dismissBackup, setDismissBackup] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [saveFailed, setSaveFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const flashTimer = useRef<number | null>(null);
   const toastTimer = useRef<number | null>(null);
 
-  useEffect(() => { setSaveFailed(!saveState(state)); }, [state]);
+  useEffect(() => { if (!loaded.error) setSaveFailed(!saveProfiles(profiles)); }, [profiles, loaded.error]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60000);
@@ -67,6 +76,8 @@ export default function App() {
   const q = query.trim().toLowerCase();
   const matches = useCallback(
     (loc: Location) => {
+      if (!collectionMatches(collection, loc)) return false;
+      if (onlyMissing && state.progress[loc.id]?.done.found) return false;
       if (onlyUnfinished && progressFor(state, loc).complete) return false;
       if (!q) return true;
       const hay = [loc.name, loc.alt, loc.code, loc.desc, loc.group, state.progress[loc.id]?.note]
@@ -75,7 +86,7 @@ export default function App() {
         .toLowerCase();
       return hay.includes(q);
     },
-    [q, onlyUnfinished, state],
+    [q, onlyUnfinished, onlyMissing, collection, state],
   );
 
   const mapLocations = useMemo(
@@ -167,7 +178,11 @@ export default function App() {
   const setTasks = (cat: CategoryId, tasks: TaskDef[]) => setState((s) => ({ ...s, tasks: { ...s.tasks, [cat]: tasks } }));
 
   const revealSecrets = () => setState((s) => ({ ...s, showSecrets: true }));
-  const toggleSecrets = () => setState((s) => ({ ...s, showSecrets: !s.showSecrets }));
+  const toggleSecrets = () => {
+    if (state.showSecrets && selectedId && byId.get(selectedId)?.category === "secrets") setSelectedId(null);
+    if (state.showSecrets) setHoverId(null);
+    setState((s) => ({ ...s, showSecrets: !s.showSecrets }));
+  };
 
   const addCustom = (c: { name: string; x?: number; y?: number; desc?: string }) => {
     const id = uid("custom");
@@ -195,7 +210,8 @@ export default function App() {
     const loc = byId.get(id);
     if (!loc) return;
     setSelectedId(id);
-    if (!matches(loc)) { setQuery(""); setOnlyUnfinished(false); }
+    if (!matches(loc)) { setQuery(""); setOnlyUnfinished(false); setOnlyMissing(false); setCollection("all"); }
+    if (loc.category === "secrets" && !state.showSecrets) setState(s => ({ ...s, showSecrets: true }));
     if (state.collapsed[loc.category]) {
       setState((s) => ({ ...s, collapsed: { ...s.collapsed, [loc.category]: false } }));
     }
@@ -212,7 +228,10 @@ export default function App() {
   };
 
   const exportJson = () => {
-    const blob = new Blob([serializeState(state)], { type: "application/json" });
+    const exported = { ...state, lastExportAt: Date.now() };
+    const blob = new Blob([serializeState(exported)], { type: "application/json" });
+    setState(exported);
+    setDismissBackup(false);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -244,6 +263,32 @@ export default function App() {
     showToast("Журнал очищен. Новый обход.");
   };
 
+  const switchProfile = (id: string) => {
+    setProfiles(p => ({ ...p, activeId: id })); setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+  };
+  const createProfile = () => {
+    const name = window.prompt("Название нового прохождения:")?.trim();
+    if (!name) return;
+    const id = uid("profile");
+    setProfiles(p => ({ ...p, activeId: id, profiles: [...p.profiles, { id, name: name.slice(0, 80), createdAt: Date.now(), state: defaultState() }] }));
+    setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+  };
+  const renameProfile = () => {
+    const name = window.prompt("Новое название прохождения:", activeProfile.name)?.trim();
+    if (name) setProfiles(p => ({ ...p, profiles: p.profiles.map(x => x.id === p.activeId ? { ...x, name: name.slice(0, 80) } : x) }));
+  };
+  const deleteProfile = () => {
+    if (profiles.profiles.length <= 1) return;
+    if (!window.confirm(`Удалить прохождение «${activeProfile.name}» со всеми отметками? Действие необратимо. Сначала экспортируйте резервную копию.`)) return;
+    setProfiles(p => { const remaining = p.profiles.filter(x => x.id !== p.activeId); return { ...p, profiles: remaining, activeId: remaining[0].id }; });
+    setSelectedId(null); setHoverId(null); setDismissBackup(false);
+  };
+  const chooseCollection = (id: CollectionId, missing = false) => {
+    if (id !== "all" && !state.showSecrets && !window.confirm("Показать спойлерные находки и карту?")) return;
+    if (id !== "all" && !state.showSecrets) revealSecrets();
+    setCollection(id); setOnlyMissing(missing); setOnlyUnfinished(false); setQuery("");
+    if (id !== "all") setState(s => ({ ...s, collapsed: { ...s.collapsed, secrets: false } }));
+  };
   /* ---------- flavour ---------- */
 
   const trDots = ["tr1", "tr2", "tr3"].map((id) => {
@@ -253,6 +298,10 @@ export default function App() {
   });
   const creepy = now.getHours() === 3 && now.getMinutes() === 33;
   const selected = selectedId ? byId.get(selectedId) : undefined;
+  const nearby = selected && typeof selected.x === "number" && typeof selected.y === "number"
+    ? allLocations.filter(l => l.id !== selected.id && (state.showSecrets || l.category !== "secrets") && typeof l.x === "number" && typeof l.y === "number")
+      .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
+  const backupDue = Date.now() - (state.lastExportAt ?? activeProfile.createdAt) > 7 * 24 * 60 * 60 * 1000;
 
   return (
     <div className="relative min-h-screen">
@@ -275,6 +324,13 @@ export default function App() {
           onReset={resetAll}
         />
 
+        <section className="panel mt-4 flex flex-wrap items-center gap-2 p-3" aria-label="Профили прохождений">
+          <label className="text-xs text-phos-400">Прохождение <select className="input-term ml-2 w-auto" aria-label="Выбрать прохождение" value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <button type="button" className="btn-term" onClick={createProfile}>+ новое</button><button type="button" className="btn-term" onClick={renameProfile}>переименовать</button><button type="button" className="btn-term" disabled={profiles.profiles.length <= 1} onClick={deleteProfile}>удалить</button>
+          <span className="text-xs text-phos-600">Экспорт и импорт относятся к выбранному прохождению.</span>
+        </section>
+        {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">Пора сохранить резервную копию этого прохождения. <button type="button" className="btn-term" onClick={exportJson}>Экспорт JSON</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>Напомнить позже</button></div>}
+        {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера.</div>}
         {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
@@ -303,6 +359,7 @@ export default function App() {
                 onHover={setHoverId}
               />
             </div>
+            {selected && nearby.length > 0 && <div className="panel corner p-4"><p className="panel-title">Рядом с «{selected.name}»</p><p className="mt-1 text-xs text-phos-600">По прямой на плоскости карты; высота и препятствия не учитываются.</p><ul className="mt-2 space-y-1">{nearby.map(({loc,distance}) => <li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => select(loc.id)}>{loc.name} · ≈{Math.round(distance)} м</button></li>)}</ul></div>}
             <div className="panel corner relative p-4">
               <EventLog log={state.log} />
             </div>
@@ -351,6 +408,11 @@ export default function App() {
               </div>
             </div>
 
+            <section className="panel corner p-3" aria-label="Коллекции">
+              <p className="panel-title">Коллекции · найдено</p>
+              <div className="mt-2 flex flex-wrap gap-2">{COLLECTIONS.filter(c => c.id !== "all").map(c => { const items = allLocations.filter(c.matches); const found = items.filter(l => state.progress[l.id]?.done.found).length; return <div key={c.id} className="flex gap-1"><button type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id && !onlyMissing} onClick={()=>chooseCollection(c.id)}>{c.label} {found}/{items.length}</button><button type="button" className="btn-term" aria-label={`Показать недостающие: ${c.label}`} onClick={()=>chooseCollection(c.id, true)}>осталось {items.length-found}</button></div>; })}<button type="button" className="btn-term" aria-pressed={collection === "all"} onClick={()=>chooseCollection("all")}>Все точки</button></div>
+              {collection !== "all" && <p className="mt-2 text-xs text-phos-600">Фильтр: {COLLECTIONS.find(c => c.id === collection)?.label}{onlyMissing ? " · только без отметки «Найдено»" : ""}. Отметки считаются независимо от остальных колонок.</p>}
+            </section>
             {CATEGORIES.map((cat) => {
               const all = byCategory[cat.id];
               const visible = all.filter(matches);
@@ -367,6 +429,7 @@ export default function App() {
                   onToggleCollapse={() => toggleCollapse(cat.id)}
                   onToggleTask={toggleTask}
                   onNote={setNote}
+                  onRitualStep={(key, value) => setState(s => ({ ...s, ritualSteps: { ...s.ritualSteps, [key]: value } }))}
                   onSelect={select}
                   onHover={setHoverId}
                   onRemoveCustom={cat.id === "custom" ? removeCustom : undefined}

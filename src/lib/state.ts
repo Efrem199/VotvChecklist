@@ -32,6 +32,8 @@ export interface AppState {
   collapsed: Partial<Record<CategoryId, boolean>>;
   showSecrets: boolean;
   log: LogEntry[];
+  ritualSteps: Record<string, boolean>;
+  lastExportAt?: number;
 }
 
 export const LOG_LIMIT = 12;
@@ -50,6 +52,8 @@ export function defaultState(): AppState {
     collapsed: {},
     showSecrets: false,
     log: [],
+    ritualSteps: {},
+    lastExportAt: undefined,
   };
 }
 
@@ -135,6 +139,8 @@ export function normalizeState(raw: unknown): AppState {
     tasks,
     collapsed,
     showSecrets: Boolean(src.showSecrets),
+    ritualSteps: isObject(src.ritualSteps) ? Object.fromEntries(Object.entries(src.ritualSteps).filter(([, value]) => typeof value === "boolean")) as Record<string, boolean> : {},
+    lastExportAt: typeof src.lastExportAt === "number" && Number.isFinite(src.lastExportAt) ? src.lastExportAt : undefined,
     log,
   };
 }
