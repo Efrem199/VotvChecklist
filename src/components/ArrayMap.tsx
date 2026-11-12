@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { cn } from "@/utils/cn";
-import { CANDLE_RADIUS, FENCE, UPGRADE_KEYS, type Location, type MarkerKind } from "@/data/locations";
+import { CANDLE_RADIUS, FENCE, MAP_EXTENT, UPGRADE_KEYS, type Location, type MarkerKind } from "@/data/locations";
 import { EMPTY_LOC, progressFor, tasksFor, type AppState } from "@/lib/state";
 
 export type MapMode = "overall" | "visited" | "camera" | "upgrades";
@@ -14,12 +14,12 @@ export const MAP_MODES: { id: MapMode; label: string; hint: string }[] = [
 
 type Status = "na" | "none" | "partial" | "done";
 
-const E = 740;
+const E = MAP_EXTENT;
 
 const DISPLAY_POS: Record<string, [number, number]> = {
   tower: [45, -58],
   hideout: [-48, 50],
-  "s-fishing": [60, -432],
+  "s-fishing": [176.06, -460.41],
   "s-burger-tr2": [-505, 205],
   "s-pickaxe": [365, -372],
   "s-limestone": [592, 224],
@@ -127,13 +127,12 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Режим карты">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Режим карты">
         {MAP_MODES.map((m) => (
           <button
             key={m.id}
             type="button"
-            role="tab"
-            aria-selected={mode === m.id}
+            aria-pressed={mode === m.id}
             onClick={() => onModeChange(m.id)}
             title={m.hint}
             className={cn(
@@ -150,7 +149,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
         <svg
           viewBox={`${-E} ${-E} ${2 * E} ${2 * E}`}
           className="block h-auto w-full"
-          role="img"
+          role="group"
           aria-label="Схема массива Dunkeltaler Forest"
         >
           <defs>
@@ -271,7 +270,13 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
               <g
                 key={loc.id}
                 transform={`translate(${px} ${py})`}
-                className="cursor-pointer"
+                className="cursor-pointer map-marker"
+                role="button"
+                tabIndex={0}
+                aria-label={`Показать точку ${loc.name}`}
+                onFocus={() => onHover(loc.id)}
+                onBlur={() => onHover(null)}
+                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(loc.id); } }}
                 onClick={() => onSelect(loc.id)}
                 onMouseEnter={() => onHover(loc.id)}
                 onMouseLeave={() => onHover(null)}

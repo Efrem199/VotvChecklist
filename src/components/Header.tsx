@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 
 export interface OverallStats {
@@ -18,7 +18,6 @@ interface Props {
   sound: boolean;
   onToggleSound: () => void;
   stats: OverallStats;
-  now: Date;
   onExport: () => void;
   onImport: (file: File) => void;
   onReset: () => void;
@@ -28,7 +27,9 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-export default function Header({ day, onDay, sound, onToggleSound, stats, now, onExport, onImport, onReset }: Props) {
+export default function Header({ day, onDay, sound, onToggleSound, stats, onExport, onImport, onReset }: Props) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 1000); return () => window.clearInterval(timer); }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const pct = stats.tasksTotal ? Math.round((stats.tasksDone / stats.tasksTotal) * 100) : 0;
   const hh = pad(now.getHours());

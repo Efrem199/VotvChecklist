@@ -1,3 +1,5 @@
+import { EXTRA_SECRETS } from "./wikiItems";
+
 export type CategoryId = "dishes" | "power" | "radars" | "poi" | "secrets" | "custom";
 
 export type MarkerKind = "dish" | "tr" | "cr" | "base" | "poi" | "secret" | "custom";
@@ -25,6 +27,7 @@ export interface Location {
   y?: number;
   desc?: string;
   group?: string;
+  source?: string;
 }
 
 export const CATEGORIES: Category[] = [
@@ -52,8 +55,8 @@ export const DEFAULT_TASKS: Record<CategoryId, TaskDef[]> = {
 export const UPGRADE_KEYS = ["server", "upgrade", "fuses"];
 
 const RING_INNER = "Внутреннее кольцо · ~200 м от базы";
-const RING_MID = "Среднее кольцо · ~300 м";
-const RING_OUTER = "Внешнее кольцо · ~500 м";
+const RING_MID = "Среднее кольцо · координаты ±300";
+const RING_OUTER = "Внешнее кольцо · координаты ±500";
 
 const dish = (
   code: string,
@@ -188,7 +191,7 @@ export const RADARS: Location[] = [
 
 const G_STATION = "Объекты станции";
 const G_FOREST = "Лес";
-const G_RESTRICTED = "Закрытые зоны · за забором";
+const G_RESTRICTED = "Закрытые зоны";
 
 const poi = (
   id: string,
@@ -294,24 +297,26 @@ const secret = (id: string, name: string, x: number | undefined, y: number | und
   x,
   y,
   desc,
+  group: "Другие находки",
+  source: "https://eternitydev.wiki.gg/wiki/Voices_of_the_Void/Locations",
 });
 
 export const SECRETS: Location[] = [
   secret("s-capsule", "Радиоактивная капсула", -570, 303, "Закопана западнее Quebec, в пятне тёмной земли. Нужна для Kerfur-Omega."),
   secret("s-drives", "Коробка дисков LVL 3", -118, -41, "У бетонного столба рядом с базой. Ищется металлоискателем."),
   secret("s-emf", "EMF-детектор", -622, -31, "Закопан у Ямы."),
-  secret("s-fishing", "Снасти рыбака", 90, -400, "Ящик у самой западной ветряной турбины: части удочки и наживка."),
+  secret("s-fishing", "Снасти рыбака", 176.06, -460.41, "Выкопать ящик Fisherman’s Treasure у ветряков; собрать удочку из деталей на верстаке."),
   secret("s-mre", "Бочка с пайками", 235, -323, "Внутри полого бревна. 50 MRE."),
   secret("s-pickaxe", "Кирка", 391, -384, "На дне озера, воткнута в дерево."),
   secret("s-wasps", "Осиное гнездо", 420, 265, "Закопано северо-восточнее Papa. Лучше не ломать."),
   secret("s-limestone", "Известняковый блок", 567, 237, "Огромный блок южнее Uniform, у колодца."),
-  secret("s-mug", "Кружка Аргемии", -58, -295, "На вершине столба ЛЭП. Только руками."),
+  secret("s-mug", "Кружка Аргемии", -57, -298, "На вершине столба ЛЭП у Bravo и ветряков. Понадобится крюк или другой способ залезть."),
   secret("s-candles", "Каменные свечи", undefined, undefined, "Восемь свечей кругом радиусом 650 вокруг базы. Зажигаются зажигалкой."),
-  secret("s-burger-tr2", "Бургер на крыше TR 2", -540, 232, "Куриный бургер лежит на крыше второго трансформатора."),
+
 ];
 
-export const BUILTIN_LOCATIONS: Location[] = [...DISHES, ...POWER, ...RADARS, ...POIS, ...SECRETS];
+export const BUILTIN_LOCATIONS: Location[] = [...DISHES, ...POWER, ...RADARS, ...POIS, ...SECRETS, ...EXTRA_SECRETS];
 
-export const MAP_EXTENT = 750;
+export const MAP_EXTENT = 1000;
 export const FENCE = 700;
 export const CANDLE_RADIUS = 650;

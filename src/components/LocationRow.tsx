@@ -114,13 +114,14 @@ export default function LocationRow({
               )}
               {progress.complete && <span className="text-[10px] uppercase tracking-[0.2em] text-phos-500">✓ закрыто</span>}
             </div>
-            {loc.desc && <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-phos-500/70">{loc.desc}</p>}
+            {loc.desc && <p className="mt-0.5 text-xs leading-snug text-phos-500">{loc.desc}</p>}
             {ls.note && !noteOpen && (
               <p className="mt-1 truncate text-xs italic text-amber-glow/80">✎ {ls.note}</p>
             )}
           </div>
         </button>
 
+        {loc.source && <a href={loc.source} target="_blank" rel="noreferrer" className="text-xs text-phos-500 underline" aria-label={`Источник: ${loc.name}`}>вики ↗</a>}
         <div className="flex flex-wrap items-center gap-1.5">
           {tasks.map((t) => (
             <TaskChip
@@ -142,6 +143,7 @@ export default function LocationRow({
               noteOpen && "bg-ink-800",
             )}
             title="Заметка"
+            aria-label={`Заметка: ${loc.name}`}
             aria-expanded={noteOpen}
           >
             ✎
@@ -152,6 +154,7 @@ export default function LocationRow({
               onClick={onRemove}
               className="border border-ink-600 px-2 py-1 text-[11px] text-phos-700 transition hover:border-alert/60 hover:text-alert"
               title="Удалить точку"
+              aria-label={`Удалить точку: ${loc.name}`}
             >
               ×
             </button>

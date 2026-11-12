@@ -34,6 +34,7 @@ export interface AppState {
   log: LogEntry[];
 }
 
+export const LOG_LIMIT = 12;
 export const STORAGE_KEY = "votv-patrol-log:v1";
 
 export const EMPTY_LOC: LocState = { done: {}, note: "" };
@@ -122,7 +123,7 @@ export function normalizeState(raw: unknown): AppState {
           text: e.text as string,
           ok: e.ok !== false,
         }))
-        .slice(0, 12)
+        .slice(0, LOG_LIMIT)
     : [];
 
   return {
@@ -148,12 +149,25 @@ export function loadState(): AppState {
   }
 }
 
-export function saveState(state: AppState) {
+export function saveState(state: AppState): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
   } catch {
-    /* quota / private mode — молча игнорируем */
+    return false;
   }
+}
+
+/** Импорт только известных экспортов или полноценного состояния версии 1. */
+export function parseImport(raw: unknown): AppState {
+  if (!isObject(raw)) throw new Error("Неверный формат журнала");
+  const wrapped = raw.app === "votv-patrol-log";
+  if (wrapped && raw.version !== 1) throw new Error("Неподдерживаемая версия журнала");
+  const src = wrapped ? raw.state : raw;
+  if (!isObject(src) || src.version !== 1 || !isObject(src.progress) || !Array.isArray(src.custom) || !isObject(src.tasks)) {
+    throw new Error("Файл не является журналом VoTV версии 1");
+  }
+  return normalizeState(src);
 }
 
 export function serializeState(state: AppState): string {
@@ -195,5 +209,5 @@ export function progressFor(state: AppState, loc: Location): LocProgress {
 }
 
 export function uid(prefix = "id"): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  return `${prefix}-${globalThis.crypto.randomUUID()}`;
 }

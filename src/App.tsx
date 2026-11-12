@@ -7,7 +7,8 @@ import {
   customToLocation,
   defaultState,
   loadState,
-  normalizeState,
+  parseImport,
+  LOG_LIMIT,
   progressFor,
   saveState,
   serializeState,
@@ -23,7 +24,6 @@ import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
 import AddCustomLocation from "@/components/AddCustomLocation";
 
-const LOG_LIMIT = 12;
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => loadState());
@@ -34,14 +34,15 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [onlyUnfinished, setOnlyUnfinished] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [saveFailed, setSaveFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const flashTimer = useRef<number | null>(null);
   const toastTimer = useRef<number | null>(null);
 
-  useEffect(() => saveState(state), [state]);
+  useEffect(() => { setSaveFailed(!saveState(state)); }, [state]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
+    const id = window.setInterval(() => setNow(new Date()), 60000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -78,8 +79,8 @@ export default function App() {
   );
 
   const mapLocations = useMemo(
-    () => allLocations.filter((l) => l.category !== "secrets" || state.showSecrets),
-    [allLocations, state.showSecrets],
+    () => allLocations.filter((l) => (l.category !== "secrets" || state.showSecrets) && matches(l)),
+    [allLocations, state.showSecrets, matches],
   );
 
   const stats = useMemo<OverallStats>(() => {
@@ -194,6 +195,7 @@ export default function App() {
     const loc = byId.get(id);
     if (!loc) return;
     setSelectedId(id);
+    if (!matches(loc)) { setQuery(""); setOnlyUnfinished(false); }
     if (state.collapsed[loc.category]) {
       setState((s) => ({ ...s, collapsed: { ...s.collapsed, [loc.category]: false } }));
     }
@@ -226,7 +228,7 @@ export default function App() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const next = normalizeState(parsed);
+      const next = parseImport(parsed);
       if (!window.confirm("Заменить текущий журнал данными из файла?")) return;
       setState(next);
       showToast(`Журнал загружен · день ${next.day}`);
@@ -268,11 +270,12 @@ export default function App() {
           sound={state.sound}
           onToggleSound={toggleSound}
           stats={stats}
-          now={now}
           onExport={exportJson}
           onImport={importJson}
           onReset={resetAll}
         />
+
+        {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
@@ -400,7 +403,7 @@ export default function App() {
             день <span className="text-phos-400">{String(state.day).padStart(2, "0")}</span>
           </span>
           <span className="ml-auto normal-case tracking-normal text-phos-700">
-            данные локаций: voicesofthevoid.wiki.gg · сохраняется в браузере
+            источники: <a className="underline" href="https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items" target="_blank" rel="noreferrer">Voices of the Void Wiki</a> · сведения могут зависеть от версии игры · сохраняется в браузере
           </span>
         </footer>
       </div>

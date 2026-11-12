@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/700.css";
+@import "@fontsource/press-start-2p/400.css";
 
 @theme {
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -217,3 +220,8 @@ body {
     display: none;
   }
 }
+
+:focus-visible { outline: 2px solid #a6ff9e !important; outline-offset: 3px; }
+.map-marker:focus-visible { outline: none !important; filter: drop-shadow(0 0 8px white); }
+.text-phos-700, .text-phos-800 { color: #35b93a; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; } }

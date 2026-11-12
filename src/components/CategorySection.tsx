@@ -87,12 +87,13 @@ export default function CategorySection({
   };
   const removeTask = (i: number) => {
     if (tasks.length <= 1) return;
+    if (!window.confirm("Удалить колонку? Её отметки сохранятся и восстановятся при возврате стандартной колонки.")) return;
     onSetTasks(tasks.filter((_, idx) => idx !== i));
   };
   const addTask = () => {
     const label = newTask.trim();
     if (!label) return;
-    const key = `t-${Date.now().toString(36)}`;
+    const key = `t-${crypto.randomUUID()}`;
     onSetTasks([...tasks, { key, label }]);
     setNewTask("");
   };
@@ -201,7 +202,7 @@ export default function CategorySection({
               </button>
             </div>
           )}
-          <div className={cn(masked && "spoiler-mask")}>
+          <div className={cn(masked && "spoiler-mask")} inert={masked}>
             {visible.length === 0 && (
               <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
                 {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}

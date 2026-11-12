@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MAP_EXTENT } from "@/data/locations";
 
 interface Props {
   onAdd: (loc: { name: string; x?: number; y?: number; desc?: string }) => void;
@@ -16,11 +17,18 @@ export default function AddCustomLocation({ onAdd }: Props) {
   const [x, setX] = useState("");
   const [y, setY] = useState("");
   const [desc, setDesc] = useState("");
+  const [error, setError] = useState("");
 
   const submit = () => {
     const n = name.trim();
     if (!n) return;
-    onAdd({ name: n, x: parseNum(x), y: parseNum(y), desc: desc.trim() || undefined });
+    const px = parseNum(x), py = parseNum(y);
+    if ((x.trim() || y.trim()) && (px === undefined || py === undefined || Math.abs(px) > MAP_EXTENT || Math.abs(py) > MAP_EXTENT)) {
+      setError(`Укажите обе координаты числами от −${MAP_EXTENT} до ${MAP_EXTENT}, либо оставьте оба поля пустыми.`);
+      return;
+    }
+    setError("");
+    onAdd({ name: n, x: px, y: py, desc: desc.trim() || undefined });
     setName("");
     setX("");
     setY("");
@@ -47,6 +55,7 @@ export default function AddCustomLocation({ onAdd }: Props) {
           + добавить
         </button>
       </div>
+      {error && <p role="alert" className="mt-2 text-xs text-alert">{error}</p>}
       <p className="mt-2 text-[10px] text-phos-700">Координаты — как на цифровой карте в игре (X вправо/восток, Y вниз/юг). С ними точка появится на схеме.</p>
     </form>
   );
