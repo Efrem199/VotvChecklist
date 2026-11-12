@@ -197,51 +197,53 @@ export default function CategorySection({
 
       {!collapsed && (
         <div className="relative">
-          {masked && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink-950/40">
+          {masked ? (
+            <div className="flex flex-wrap items-center gap-3 px-4 py-4">
+              <p className="text-xs text-phos-600">Список тайников скрыт, чтобы не показывать спойлеры.</p>
               <button type="button" onClick={onRevealSecrets} className="btn-term border-alert/50 px-4 py-2 text-alert hover:border-alert hover:text-alert">
                 ▣ показать спойлеры
               </button>
             </div>
+          ) : (
+            <div>
+              {visible.length === 0 && (
+                <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
+                  {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}
+                </p>
+              )}
+              {groups.map((g) => (
+                <div key={g.label || "default"}>
+                  {g.label && (
+                    <div className="flex items-center gap-3 px-4 pb-1 pt-3">
+                      <span className="text-[10px] uppercase tracking-[0.25em] text-phos-600">{g.label}</span>
+                      <span className="h-px flex-1 bg-gradient-to-r from-phos-800/60 to-transparent" />
+                    </div>
+                  )}
+                  <ul className="divide-y divide-ink-700/60">
+                    {g.items.map((loc) => (
+                      <LocationRow
+                        key={loc.id}
+                        loc={loc}
+                        ritualSteps={state.ritualSteps}
+                        onRitualStep={onRitualStep}
+                        tasks={tasks}
+                        ls={state.progress[loc.id] ?? EMPTY_LOC}
+                        progress={progressFor(state, loc)}
+                        selected={selectedId === loc.id}
+                        flash={flashId === loc.id}
+                        onToggle={(key) => onToggleTask(loc.id, key)}
+                        onNote={(text) => onNote(loc.id, text)}
+                        onSelect={() => onSelect(loc.id)}
+                        onHover={(h) => onHover(h ? loc.id : null)}
+                        onRemove={onRemoveCustom ? () => onRemoveCustom(loc.id) : undefined}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {children}
+            </div>
           )}
-          <div className={cn(masked && "spoiler-mask")} inert={masked}>
-            {visible.length === 0 && (
-              <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
-                {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}
-              </p>
-            )}
-            {groups.map((g) => (
-              <div key={g.label || "default"}>
-                {g.label && (
-                  <div className="flex items-center gap-3 px-4 pb-1 pt-3">
-                    <span className="text-[10px] uppercase tracking-[0.25em] text-phos-600">{g.label}</span>
-                    <span className="h-px flex-1 bg-gradient-to-r from-phos-800/60 to-transparent" />
-                  </div>
-                )}
-                <ul className="divide-y divide-ink-700/60">
-                  {g.items.map((loc) => (
-                    <LocationRow
-                      key={loc.id}
-                      loc={loc}
-                      ritualSteps={state.ritualSteps}
-                      onRitualStep={onRitualStep}
-                      tasks={tasks}
-                      ls={state.progress[loc.id] ?? EMPTY_LOC}
-                      progress={progressFor(state, loc)}
-                      selected={selectedId === loc.id}
-                      flash={flashId === loc.id}
-                      onToggle={(key) => onToggleTask(loc.id, key)}
-                      onNote={(text) => onNote(loc.id, text)}
-                      onSelect={() => onSelect(loc.id)}
-                      onHover={(h) => onHover(h ? loc.id : null)}
-                      onRemove={onRemoveCustom ? () => onRemoveCustom(loc.id) : undefined}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
-            {children}
-          </div>
         </div>
       )}
     </section>

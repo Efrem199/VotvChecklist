@@ -209,12 +209,6 @@ body {
   transform: translateY(1px);
 }
 
-.spoiler-mask {
-  filter: blur(7px) saturate(0.4);
-  pointer-events: none;
-  user-select: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .crt-overlay {
     display: none;
