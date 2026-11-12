@@ -23,9 +23,20 @@ import ArrayMap, { type MapMode } from "@/components/ArrayMap";
 import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
 import AddCustomLocation from "@/components/AddCustomLocation";
+import SiteNav from "@/components/SiteNav";
+import FunPage from "@/components/FunPage";
 
 
 export default function App() {
+  const [page, setPage] = useState(() => window.location.hash === '#/fun' ? 'fun' : 'journal');
+  useEffect(() => {
+    const navigate = () => {
+      setPage(window.location.hash === '#/fun' ? 'fun' : 'journal');
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
   const [loaded] = useState(() => loadProfiles());
   const [profiles, setProfiles] = useState(loaded.data);
   const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
@@ -303,6 +314,8 @@ export default function App() {
       .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
   const backupDue = Date.now() - (state.lastExportAt ?? activeProfile.createdAt) > 7 * 24 * 60 * 60 * 1000;
 
+  if (page === 'fun') return <FunPage />;
+
   return (
     <div className="relative min-h-screen">
       <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden>
@@ -313,6 +326,7 @@ export default function App() {
       <div className="crt-overlay" aria-hidden />
 
       <div className="relative mx-auto max-w-[1540px] px-3 py-4 sm:px-5 lg:px-8">
+        <SiteNav page="journal" />
         <Header
           day={state.day}
           onDay={setDay}

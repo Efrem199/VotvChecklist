@@ -10,7 +10,7 @@ assert.ok(redirect, 'скрипт перенаправления должен п
 function target(html: string, url: string) {
   let redirected: string | undefined;
   const parsed = new URL(url);
-  const location = { hostname: parsed.hostname, href: parsed.href, replace: (value: string) => { redirected = value; } };
+  const location = { hostname: parsed.hostname, href: parsed.href, search: parsed.search, hash: parsed.hash, replace: (value: string) => { redirected = value; } };
   const document = { querySelector: () => html.includes('<script type="module" src="/src/main.tsx"></script>') ? {} : null };
   runInNewContext(redirect!, { location, document, URL });
   return redirected;
@@ -18,6 +18,7 @@ function target(html: string, url: string) {
 test('страница исходников на GitHub Pages перенаправляет на сборку', () => {
   assert.equal(target(root, 'https://efrem199.github.io/VotvChecklist/'), 'https://efrem199.github.io/VotvChecklist/docs/');
   assert.equal(target(root, 'https://efrem199.github.io/VotvChecklist/index.html'), 'https://efrem199.github.io/VotvChecklist/docs/');
+  assert.equal(target(root, 'https://efrem199.github.io/VotvChecklist/?test=1#/fun'), 'https://efrem199.github.io/VotvChecklist/docs/?test=1#/fun');
 });
 test('сборка не перенаправляет повторно, локальная разработка не затронута', () => {
   assert.equal(target(built, 'https://efrem199.github.io/VotvChecklist/docs/'), undefined);
