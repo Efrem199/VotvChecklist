@@ -56,3 +56,19 @@ test('для каждой записи есть гайд с шагами и ко
   for (const image of guide.images ?? []) assert.match(image.file, /^[A-Za-z0-9_]+\.png$/, id);
  }
 });
+
+test('расширенные гайды содержат рецепты, места и предупреждения', async () => {
+ const { ACHIEVEMENT_DETAILS } = await import('../src/data/achievementDetails');
+ for (const id of Object.keys(ACHIEVEMENT_DETAILS)) assert.ok(ACHIEVEMENTS.some(a => a.id === id), id);
+ const omega = ACHIEVEMENT_DETAILS.upgrade;
+ assert.ok(omega.every(section => section.spoiler));
+ const text = omega.flatMap(section => section.items).join(' ');
+ for (const expected of ['14 пластикового', '7 металлического', '8 электронного', '1 стеклянного', '8 Ball Joints', '4 Limb Joints', 'X:405.5', 'X:-570.0', 'Complete Manual', 'Две руки', 'Две ноги', '0.9.0']) assert.ok(text.includes(expected), expected);
+ assert.equal(ACHIEVEMENT_DETAILS['super-burger'][0].items.length, 21);
+ assert.equal(ACHIEVEMENT_DETAILS['adv-burger'][0].items.length, 21);
+ assert.equal(ACHIEVEMENT_DETAILS.portal[0].items.length, 7);
+ assert.equal(ACHIEVEMENT_DETAILS.easter[0].items.length, 12);
+ assert.equal(ACHIEVEMENT_DETAILS['halloween-1'][0].items.length, 14);
+ assert.ok(ACHIEVEMENT_DETAILS['super-burger'][0].items.some(item => item.includes('-584.7')));
+ assert.ok(ACHIEVEMENT_DETAILS.portal[0].items.some(item => item.includes('637.4')));
+});

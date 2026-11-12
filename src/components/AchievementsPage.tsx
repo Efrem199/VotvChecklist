@@ -1,18 +1,26 @@
 import { useState } from 'react';
 import bg from '@/assets/bg.jpg';
 import { ACHIEVEMENTS, ACHIEVEMENTS_SOURCE, type AchievementKind } from '@/data/achievements';
+import { ACHIEVEMENT_DETAILS } from '@/data/achievementDetails';
 import { ACHIEVEMENT_GUIDES, type AchievementGuide } from '@/data/achievementGuides';
 import type { Marks } from '@/lib/achievements';
 import type { Location } from '@/data/locations';
 import type { LocState } from '@/lib/state';
 import SiteNav from './SiteNav';
 
-function Guide({ guide }: { guide: AchievementGuide }) {
+function Guide({ guide, id, spoilers }: { guide: AchievementGuide; id: string; spoilers: boolean }) {
   const [open, setOpen] = useState(false);
   return <details className="mt-3 border-t border-phos-900 pt-3" onToggle={e => setOpen(e.currentTarget.open)}>
     <summary className="cursor-pointer text-sm font-bold text-phos-300">Как получить · пошаговый гайд</summary>
     {open && <div className="mt-3 space-y-3 text-sm leading-relaxed">
       <ol className="list-decimal space-y-2 pl-5">{guide.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+      {ACHIEVEMENT_DETAILS[id]?.some(section => section.spoiler) && !spoilers && <p className="text-xs text-amber-glow">Подробные рецепты и расположения скрыты. Включите «Показать спойлеры» в фильтрах.</p>}
+      {ACHIEVEMENT_DETAILS[id]?.filter(section => !section.spoiler || spoilers).map(section => <section key={section.title} className="rounded border border-phos-900 p-3">
+        <h3 className="font-bold text-phos-300">{section.title}</h3>
+        <ul className="mt-2 list-disc space-y-2 pl-5">{section.items.map((item, i) => <li key={i}>{item}</li>)}</ul>
+        {section.images && <div className="mt-3 flex flex-wrap gap-3">{section.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500"><a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/thumb/${image.file}/480px-${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a></figure>)}</div>}
+        {section.images && <p className="mt-2 text-xs text-phos-500">Изображения: Voices of the Void Wiki; права принадлежат MrDrNose и/или правообладателям. Если изображение недоступно, откройте ссылку.</p>}
+      </section>)}
       {guide.note && <p className="border-l-2 border-amber-glow pl-3 text-xs leading-relaxed text-amber-glow">Важно: {guide.note}</p>}
       {guide.images && <div className="flex flex-wrap gap-3">{guide.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500">
         <a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full rounded object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/thumb/${image.file}/480px-${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a>
@@ -57,7 +65,7 @@ export default function AchievementsPage(props: Props) {
           {!locked && (kind === 'achievement' ? props.globalSaveFailed : props.profileSaveFailed) && <p role="alert" className="mt-2 text-xs text-alert">Не удалось сохранить отметки в браузере.</p>}
         </section>
         {matching.length === 0 && <p className="panel p-4 text-sm text-phos-500">Ничего не найдено. Проверьте поиск и фильтры спойлеров и старых версий.</p>}
-        <ul className="space-y-2">{matching.map(a=><li key={a.id} className="panel corner p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-sm font-bold text-phos-300">{a.title}{a.legacy && <span className="ml-2 text-xs font-normal text-amber-glow">старая версия</span>}</h2><p className="mt-2 text-sm leading-relaxed">{a.condition}</p><p className="mt-2 text-xs text-phos-500">Награда: {a.reward}</p></div><label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-phos-300"><input type="checkbox" aria-label={`Получено: ${a.title} — ${a.condition}`} disabled={locked} checked={Boolean(marks[a.id])} onChange={e=>props.onMark(a.kind,a.id,e.target.checked)}/> Получено</label></div>{ACHIEVEMENT_GUIDES[a.id] && <Guide guide={ACHIEVEMENT_GUIDES[a.id]}/>}<div className="mt-3 flex flex-wrap gap-3 text-xs"><a className="text-phos-400 underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Условия на вики ↗</a>{a.locationId && <a href={`#/journal?loc=${encodeURIComponent(a.locationId)}`} className="text-phos-400 underline">Связанная точка в журнале ↗</a>}{a.collection && <a href={`#/journal?collection=${a.collection}`} className="text-phos-400 underline">Связанная коллекция в журнале ↗</a>}</div></li>)}</ul>
+        <ul className="space-y-2">{matching.map(a=><li key={a.id} className="panel corner p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-sm font-bold text-phos-300">{a.title}{a.legacy && <span className="ml-2 text-xs font-normal text-amber-glow">старая версия</span>}</h2><p className="mt-2 text-sm leading-relaxed">{a.condition}</p><p className="mt-2 text-xs text-phos-500">Награда: {a.reward}</p></div><label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-phos-300"><input type="checkbox" aria-label={`Получено: ${a.title} — ${a.condition}`} disabled={locked} checked={Boolean(marks[a.id])} onChange={e=>props.onMark(a.kind,a.id,e.target.checked)}/> Получено</label></div>{ACHIEVEMENT_GUIDES[a.id] && <Guide guide={ACHIEVEMENT_GUIDES[a.id]} id={a.id} spoilers={spoilers}/>}<div className="mt-3 flex flex-wrap gap-3 text-xs"><a className="text-phos-400 underline" href={ACHIEVEMENTS_SOURCE} target="_blank" rel="noreferrer">Условия на вики ↗</a>{a.locationId && <a href={`#/journal?loc=${encodeURIComponent(a.locationId)}`} className="text-phos-400 underline">Связанная точка в журнале ↗</a>}{a.collection && <a href={`#/journal?collection=${a.collection}`} className="text-phos-400 underline">Связанная коллекция в журнале ↗</a>}</div></li>)}</ul>
       </main>
     </div>
   </div>;
