@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSave,exportSave} from '../src/lib/saveEditor';
+import {parseSave,exportSave,inspectSaveHeader} from '../src/lib/saveEditor';
 const i=(n:number)=>{const b=Buffer.alloc(4); b.writeInt32LE(n); return b};
 const s=(text:string)=>Buffer.concat([i(Buffer.byteLength(text)+1),Buffer.from(text),Buffer.from([0])]);
 const p=(name:string,type:string,body:Buffer,extra=Buffer.alloc(0))=>Buffer.concat([s(name),s(type),i(body.length),i(0),extra,Buffer.from([0]),body]);
@@ -40,4 +40,11 @@ test('запись отклоняет неизвестные поля и нек�
  assert.throws(()=>exportSave(doc,{'field:unknown':1}));
  assert.throws(()=>exportSave(doc,{'flag:0':1}));
  assert.equal(parseSave(fixture('global','0.9.0n')).version,'0.9.0n');
+});
+
+test('диагностика заголовка не разрешает редактирование другой версии',()=>{
+ const input=fixture('world','0.10.0');
+ assert.deepEqual(inspectSaveHeader(input),{saveVersion:2,packageVersion:522,engine:'4.27.0',className:'/Game/main/saveSlot.saveSlot_C'});
+ assert.throws(()=>parseSave(input),/не поддерживается/);
+ assert.throws(()=>inspectSaveHeader(input.subarray(0,20)));
 });

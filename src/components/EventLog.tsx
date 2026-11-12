@@ -12,7 +12,7 @@ export default function EventLog({ log }: { log: LogEntry[] }) {
       <p className="panel-title mb-2">Журнал событий</p>
       {log.length === 0 ? (
         <p className="text-xs text-phos-700">
-          <span className="text-phos-800">&gt;</span> записей нет. Начни обход с Bravo.
+          Здесь появятся события после ваших отметок.
         </p>
       ) : (
         <ul className="space-y-1 text-[11px] leading-snug">

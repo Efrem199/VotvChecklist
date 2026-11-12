@@ -30,6 +30,17 @@ class Reader {
     return new TextDecoder('utf-8', {fatal: true}).decode(v.subarray(0, size - 1));
   }
 }
+/** Read-only header diagnostics. A recognizable header does not imply write support. */
+export function inspectSaveHeader(input: Uint8Array): { saveVersion: number; packageVersion: number; engine: string; className: string } {
+  if (input.length < 32 || input.length > MAX_FILE || String.fromCharCode(...input.subarray(0,4)) !== 'GVAS') throw new Error('Заголовок GVAS не распознан.');
+  const r = new Reader(input); r.skip(4);
+  const saveVersion = r.int(), packageVersion = r.int();
+  r.need(10); const major = r.view.getUint16(r.pos,true), minor = r.view.getUint16(r.pos+2,true), patch = r.view.getUint16(r.pos+4,true); r.skip(10);
+  r.str(); r.int(); const custom = r.int();
+  if (custom < 0 || custom > 1000) throw new Error('Некорректная таблица версий.');
+  r.skip(custom * 20);
+  return { saveVersion, packageVersion, engine: `${major}.${minor}.${patch}`, className: r.str() };
+}
 function tags(r: Reader): Tag[] {
   const result: Tag[] = [];
   for (let count = 0; count < 100000; count++) {

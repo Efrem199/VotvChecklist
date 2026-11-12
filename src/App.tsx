@@ -19,6 +19,7 @@ import { loadProfiles, saveProfiles } from "@/lib/profiles";
 import { COLLECTIONS, collectionMatches, type CollectionId } from "@/data/collections";
 import { blip, chime, tick } from "@/lib/sound";
 import Header, { type OverallStats } from "@/components/Header";
+import Planner from "@/components/Planner";
 import ArrayMap, { type MapMode } from "@/components/ArrayMap";
 import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
@@ -55,6 +56,7 @@ export default function App() {
   const [selectionSerial, setSelectionSerial] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
+  const [routeIds, setRouteIds] = useState<string[]>([]);
   const [mapMode, setMapMode] = useState<MapMode>("overall");
   const [query, setQuery] = useState("");
   const [onlyUnfinished, setOnlyUnfinished] = useState(false);
@@ -112,6 +114,8 @@ export default function App() {
     () => allLocations.filter((l) => (l.category !== "secrets" || state.showSecrets) && matches(l)),
     [allLocations, state.showSecrets, matches],
   );
+
+  const routePoints = routeIds.flatMap(id => { const loc = mapLocations.find(l => l.id === id); return loc && Number.isFinite(loc.x) && Number.isFinite(loc.y) ? [loc] : []; });
 
   const stats = useMemo<OverallStats>(() => {
     let tasksDone = 0;
@@ -272,7 +276,7 @@ export default function App() {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
       const next = parseImport(parsed);
-      if (!window.confirm("Заменить текущий журнал и отметки advancements данными из файла?")) return;
+      if (!window.confirm("Заменить текущий журнал, планировщик и отметки advancements данными из файла?")) return;
       setState(next);
       showToast(`Журнал загружен · день ${next.day}`);
     } catch {
@@ -281,21 +285,21 @@ export default function App() {
   };
 
   const resetAll = () => {
-    if (!window.confirm("Снять отметки журнала и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
+    if (!window.confirm("Снять отметки журнала и планировщика и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
     setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets, advancements: s.advancements }));
     setSelectedId(null);
     showToast("Журнал очищен. Новый обход.");
   };
 
   const switchProfile = (id: string) => {
-    setProfiles(p => ({ ...p, activeId: id })); setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+    setProfiles(p => ({ ...p, activeId: id })); setSelectedId(null); setHoverId(null); setRouteIds([]); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
   };
   const createProfile = () => {
     const name = window.prompt("Название нового прохождения:")?.trim();
     if (!name) return;
     const id = uid("profile");
     setProfiles(p => ({ ...p, activeId: id, profiles: [...p.profiles, { id, name: name.slice(0, 80), createdAt: Date.now(), state: defaultState() }] }));
-    setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+    setSelectedId(null); setHoverId(null); setRouteIds([]); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
   };
   const renameProfile = () => {
     const name = window.prompt("Новое название прохождения:", activeProfile.name)?.trim();
@@ -382,14 +386,16 @@ export default function App() {
           onReset={resetAll}
         />
 
-        <section className="panel mt-4 flex flex-wrap items-center gap-2 p-3" aria-label="Профили прохождений">
-          <label className="text-xs text-phos-400">Прохождение <select className="input-term ml-2 w-auto" aria-label="Выбрать прохождение" value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <section className="panel mt-4 flex flex-wrap items-end gap-2 p-3" aria-label="Профили прохождений">
+          <label className="flex min-w-0 flex-col gap-1 text-xs text-phos-400">Профиль <select className="input-term w-full sm:w-auto" aria-label="Выбрать прохождение" value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
           <button type="button" className="btn-term" onClick={createProfile}>+ новое</button><button type="button" className="btn-term" onClick={renameProfile}>переименовать</button><button type="button" className="btn-term" disabled={profiles.profiles.length <= 1} onClick={deleteProfile}>удалить</button>
-          <span className="text-xs text-phos-600">Экспорт и импорт относятся к выбранному прохождению.</span>
+          <span className="self-center text-xs text-phos-600">Экспорт и импорт относятся к выбранному профилю.</span>
         </section>
         {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">Пора сохранить резервную копию этого прохождения. <button type="button" className="btn-term" onClick={exportJson}>Экспорт JSON</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>Напомнить позже</button></div>}
         {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера.</div>}
         {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
+
+        <Planner state={state} onStep={(id, checked) => setState(s => ({ ...s, plannerSteps: { ...s.plannerSteps, [id]: checked } }))} />
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
@@ -415,6 +421,9 @@ export default function App() {
                 hoverId={hoverId}
                 onSelect={select}
                 onHover={setHoverId}
+                routePoints={routePoints}
+                routeIds={routeIds}
+                onRouteChange={setRouteIds}
               />
             </div>
             {selected && nearby.length > 0 && <div className="panel corner p-4"><p className="panel-title">Рядом с «{selected.name}»</p><p className="mt-1 text-xs text-phos-600">По прямой на плоскости карты; высота и препятствия не учитываются.</p><ul className="mt-2 space-y-1">{nearby.map(({loc,distance}) => <li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => select(loc.id)}>{loc.name} · ≈{Math.round(distance)} м</button></li>)}</ul></div>}
@@ -426,12 +435,11 @@ export default function App() {
           <main className="min-w-0 space-y-4">
             <div className="panel corner relative flex flex-wrap items-center gap-2 p-3">
               <div className="relative min-w-[200px] flex-1">
-                <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-phos-700">&gt;</span>
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="поиск: bravo, TR 2, колодец, заметка…"
-                  className="input-term pl-6"
+                  className="input-term"
                   aria-label="Поиск по точкам"
                 />
                 {query && (

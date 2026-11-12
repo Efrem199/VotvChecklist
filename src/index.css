@@ -219,3 +219,10 @@ body {
 .map-marker:focus-visible { outline: none !important; filter: drop-shadow(0 0 8px white); }
 .text-phos-700, .text-phos-800 { color: #35b93a; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; } }
+
+/* Более крупные зоны нажатия и читаемые поля на сенсорных экранах. */
+@media (max-width: 640px) {
+  .btn-term { min-height: 44px; padding-inline: 0.8rem; }
+  .input-term { min-height: 44px; font-size: 16px; }
+  input[type="checkbox"] { width: 1.15rem; height: 1.15rem; }
+}
