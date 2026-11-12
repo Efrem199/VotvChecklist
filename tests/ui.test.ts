@@ -74,3 +74,46 @@ test('заметка не дублируется при открытии кар�
  assert.equal(view.getAllByRole('textbox',{name:'Заметка'}).length,1);
  cleanup();
 });
+
+test('карточка одинаково раскрывается и сворачивается по заголовку и кнопке подробностей', () => {
+ const loc=BUILTIN_LOCATIONS.find(l=>l.id==='dish-b')!;
+ let selections=0, toggles=0;
+ function Row() {
+  const [selected,setSelected]=React.useState(false);
+  return React.createElement('ul',null,React.createElement(LocationRow,{loc,tasks:DEFAULT_TASKS.dishes,ls:{done:{},note:''},progress:{done:0,total:3,complete:false,started:false},selected,flash:false,onToggle:()=>{toggles++},onNote:()=>{},onSelect:()=>{selections++;setSelected(true)},onHover:()=>{},ritualSteps:{},onRitualStep:()=>{}}));
+ }
+ const view=render(React.createElement(Row));
+ const heading=view.getByRole('button',{name:`Карточка: ${loc.name}`});
+ const details=view.getByRole('button',{name:`Подробности: ${loc.name}`});
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ fireEvent.click(heading);
+ assert.equal(selections,1);
+ assert.equal(heading.getAttribute('aria-expanded'),'true');
+ assert.match(details.textContent!,/свернуть/);
+ fireEvent.click(heading);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ assert.equal(selections,1);
+ fireEvent.click(details);
+ assert.equal(heading.getAttribute('aria-expanded'),'true');
+ fireEvent.click(heading);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ fireEvent.click(heading);
+ fireEvent.click(details);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ fireEvent.click(view.getByRole('button',{name:/Был/}));
+ assert.equal(toggles,1);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ cleanup();
+});
+
+test('выбор точки на карте раскрывает соответствующую карточку', () => {
+ const loc=BUILTIN_LOCATIONS.find(l=>l.id==='dish-b')!;
+ const props={loc,tasks:DEFAULT_TASKS.dishes,ls:{done:{},note:''},progress:{done:0,total:3,complete:false,started:false},selected:false,flash:false,onToggle:()=>{},onNote:()=>{},onSelect:()=>{},onHover:()=>{},ritualSteps:{},onRitualStep:()=>{}};
+ const view=render(React.createElement(LocationRow,props));
+ const heading=view.getByRole('button',{name:`Карточка: ${loc.name}`});
+ view.rerender(React.createElement(LocationRow,{...props,selected:true}));
+ assert.equal(heading.getAttribute('aria-expanded'),'true');
+ fireEvent.click(heading);
+ assert.equal(heading.getAttribute('aria-expanded'),'false');
+ cleanup();
+});

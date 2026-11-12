@@ -25,3 +25,10 @@ test('сборка не перенаправляет повторно, лока�
   assert.equal(target(root, 'http://localhost:5173/'), undefined);
   assert.ok(!built.includes('<script type="module" src="/src/main.tsx"></script>'));
 });
+test('иконка доступна и в исходной странице, и в автономной сборке Pages', () => {
+  for (const html of [root, built]) {
+    const icon = html.match(/<link rel="icon" type="image\/svg\+xml" href="data:image\/svg\+xml;base64,([^"]+)"/);
+    assert.ok(icon, 'встроенная SVG-иконка должна присутствовать');
+    assert.match(Buffer.from(icon[1], 'base64').toString(), /<svg[^>]+viewBox="0 0 64 64"/);
+  }
+});

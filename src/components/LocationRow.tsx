@@ -107,9 +107,14 @@ export default function LocationRow({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
         <button
           type="button"
-          onClick={onSelect}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none"
-          title="Показать на карте"
+          onClick={() => {
+            if (!detailsOpen) onSelect();
+            setDetailsOpen(v => !v);
+          }}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-phos-500"
+          title={detailsOpen ? "Свернуть карточку" : "Открыть карточку и показать на карте"}
+          aria-label={`Карточка: ${loc.name}`}
+          aria-expanded={detailsOpen}
         >
           <Glyph kind={loc.kind} code={loc.code} status={status} />
           <div className="min-w-0 flex-1">
@@ -148,7 +153,7 @@ export default function LocationRow({
               onToggle={() => onToggle(t.key)}
             />
           ))}
-          <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`Подробности: ${loc.name}`}>ℹ подробно</button>
+          <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`Подробности: ${loc.name}`}>{detailsOpen ? "ℹ свернуть" : "ℹ подробно"}</button>
           <button
             type="button"
             onClick={() => { if (detailsOpen) noteRef.current?.focus(); else setNoteOpen(v => !v); }}
