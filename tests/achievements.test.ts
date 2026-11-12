@@ -72,3 +72,33 @@ test('расширенные гайды содержат рецепты, мес�
  assert.ok(ACHIEVEMENT_DETAILS['super-burger'][0].items.some(item => item.includes('-584.7')));
  assert.ok(ACHIEVEMENT_DETAILS.portal[0].items.some(item => item.includes('637.4')));
 });
+
+test('иллюстрации привязаны к существующим шагам и местам', async () => {
+ const {STEP_ILLUSTRATIONS, SECTION_ILLUSTRATIONS, illustrationsFor, imageUrl} = await import('../src/data/achievementIllustrations');
+ const {ACHIEVEMENT_GUIDES} = await import('../src/data/achievementGuides');
+ const {ACHIEVEMENT_DETAILS} = await import('../src/data/achievementDetails');
+ for (const [id, mapping] of Object.entries(STEP_ILLUSTRATIONS)) {
+  const steps = ACHIEVEMENT_GUIDES[id]?.steps;
+  assert.ok(steps, id);
+  for (const [prefix, images] of Object.entries(mapping)) {
+   assert.equal(steps.filter(s => s.startsWith(prefix)).length, 1, `${id}: ${prefix}`);
+   assert.ok(images.length);
+  }
+ }
+ for (const [id, sections] of Object.entries(SECTION_ILLUSTRATIONS)) for (const [title, mapping] of Object.entries(sections)) {
+  const section = ACHIEVEMENT_DETAILS[id]?.find(s => s.title === title);
+  assert.ok(section, `${id}: ${title}`);
+  for (const [prefix, images] of Object.entries(mapping)) {
+   assert.equal(section.items.filter(s => s.startsWith(prefix)).length, 1, `${id}: ${prefix}`);
+   assert.ok(images.length);
+   for (const image of images) {
+    assert.match(image.file, /^[A-Za-z0-9_]+\.(png|jpg)$/);
+    assert.equal(new URL(imageUrl(image)).hostname, 'voicesofthevoid.wiki.gg');
+   }
+  }
+ }
+ for (const [id, title, count] of [['easter','Все 12 пасхальных яиц',12],['halloween-1','Все 13 тыкв Halloween',13],['super-burger','Все 21 сэндвич',21],['portal','Все семь человеческих черепов',7]] as const) {
+  const section=ACHIEVEMENT_DETAILS[id].find(s=>s.title===title)!;
+  assert.equal(section.items.filter(s=>illustrationsFor(SECTION_ILLUSTRATIONS[id][title],s).length > 0).length,count);
+ }
+});

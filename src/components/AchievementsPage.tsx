@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import bg from '@/assets/bg.jpg';
 import { ACHIEVEMENTS, ACHIEVEMENTS_SOURCE, type AchievementKind } from '@/data/achievements';
+import { STEP_ILLUSTRATIONS, SECTION_ILLUSTRATIONS, illustrationsFor, imageUrl, type GuideIllustration } from '@/data/achievementIllustrations';
 import { ACHIEVEMENT_DETAILS } from '@/data/achievementDetails';
 import { ACHIEVEMENT_GUIDES, type AchievementGuide } from '@/data/achievementGuides';
 import type { Marks } from '@/lib/achievements';
@@ -8,22 +9,30 @@ import type { Location } from '@/data/locations';
 import type { LocState } from '@/lib/state';
 import SiteNav from './SiteNav';
 
+function StepImages({ images }: { images: GuideIllustration[] }) {
+  if (!images.length) return null;
+  return <div className="mt-2 flex flex-wrap gap-3">{images.map(image => <figure key={image.file} className="w-44 max-w-full text-xs text-phos-500">
+    <a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-32 w-full rounded border border-phos-900 bg-ink-950/40 object-contain" src={imageUrl(image)} loading="lazy" alt={image.caption} onError={e => { e.currentTarget.hidden = true; }}/><figcaption className="mt-1 underline">{image.caption} · файл вики ↗</figcaption></a>
+  </figure>)}</div>;
+}
+
 function Guide({ guide, id, spoilers }: { guide: AchievementGuide; id: string; spoilers: boolean }) {
   const [open, setOpen] = useState(false);
   return <details className="mt-3 border-t border-phos-900 pt-3" onToggle={e => setOpen(e.currentTarget.open)}>
     <summary className="cursor-pointer text-sm font-bold text-phos-300">Как получить · пошаговый гайд</summary>
     {open && <div className="mt-3 space-y-3 text-sm leading-relaxed">
-      <ol className="list-decimal space-y-2 pl-5">{guide.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+      <ol className="list-decimal space-y-2 pl-5">{guide.steps.map((step, i) => <li key={i}>{step}<StepImages images={illustrationsFor(STEP_ILLUSTRATIONS[id], step)}/></li>)}</ol>
       {ACHIEVEMENT_DETAILS[id]?.some(section => section.spoiler) && !spoilers && <p className="text-xs text-amber-glow">Подробные рецепты и расположения скрыты. Включите «Показать спойлеры» в фильтрах.</p>}
       {ACHIEVEMENT_DETAILS[id]?.filter(section => !section.spoiler || spoilers).map(section => <section key={section.title} className="rounded border border-phos-900 p-3">
         <h3 className="font-bold text-phos-300">{section.title}</h3>
-        <ul className="mt-2 list-disc space-y-2 pl-5">{section.items.map((item, i) => <li key={i}>{item}</li>)}</ul>
-        {section.images && <div className="mt-3 flex flex-wrap gap-3">{section.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500"><a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/thumb/${image.file}/480px-${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a></figure>)}</div>}
+        <ul className="mt-2 list-disc space-y-2 pl-5">{section.items.map((item, i) => <li key={i}>{item}<StepImages images={illustrationsFor(SECTION_ILLUSTRATIONS[id]?.[section.title], item)}/></li>)}</ul>
+        {section.images && <div className="mt-3 flex flex-wrap gap-3">{section.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500"><a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a></figure>)}</div>}
         {section.images && <p className="mt-2 text-xs text-phos-500">Изображения: Voices of the Void Wiki; права принадлежат MrDrNose и/или правообладателям. Если изображение недоступно, откройте ссылку.</p>}
       </section>)}
+      {(STEP_ILLUSTRATIONS[id] || SECTION_ILLUSTRATIONS[id]) && <p className="text-xs text-phos-500">Иллюстрации к шагам: Voices of the Void Wiki. Права принадлежат MrDrNose и/или правообладателям; загрузка требует подключения к вики. Если изображение не появилось, используйте ссылку под ним.</p>}
       {guide.note && <p className="border-l-2 border-amber-glow pl-3 text-xs leading-relaxed text-amber-glow">Важно: {guide.note}</p>}
       {guide.images && <div className="flex flex-wrap gap-3">{guide.images.map(image => <figure key={image.file} className="w-40 max-w-full text-xs text-phos-500">
-        <a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full rounded object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/thumb/${image.file}/480px-${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a>
+        <a href={`https://voicesofthevoid.wiki.gg/wiki/File:${image.file}`} target="_blank" rel="noreferrer"><img className="h-28 w-full rounded object-contain" loading="lazy" src={`https://voicesofthevoid.wiki.gg/images/${image.file}`} alt={image.caption} onError={e => {e.currentTarget.hidden = true;}}/><figcaption className="mt-1 underline">{image.caption} · изображение вики ↗</figcaption></a>
       </figure>)}</div>}
       {guide.images && <p className="text-xs text-phos-500">Изображения: Voices of the Void Wiki; права принадлежат MrDrNose и/или соответствующим правообладателям. Если изображение недоступно, откройте ссылку под ним.</p>}
       {guide.sources && <div className="flex flex-wrap gap-3 text-xs">{guide.sources.map(source => <a key={source.url} className="text-phos-400 underline" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div>}
