@@ -6,42 +6,71 @@ import {
   EMPTY_LOC,
   customToLocation,
   defaultState,
-  loadState,
-  normalizeState,
+  parseImport,
+  LOG_LIMIT,
   progressFor,
-  saveState,
   serializeState,
   tasksFor,
   uid,
   type AppState,
   type LogEntry,
 } from "@/lib/state";
+import { loadProfiles, saveProfiles } from "@/lib/profiles";
+import { COLLECTIONS, collectionMatches, type CollectionId } from "@/data/collections";
 import { blip, chime, tick } from "@/lib/sound";
 import Header, { type OverallStats } from "@/components/Header";
 import ArrayMap, { type MapMode } from "@/components/ArrayMap";
 import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
 import AddCustomLocation from "@/components/AddCustomLocation";
+import SiteNav from "@/components/SiteNav";
+import FunPage from "@/components/FunPage";
+import AchievementsPage from "@/components/AchievementsPage";
+import SaveEditorPage from "@/components/SaveEditorPage";
+import { loadAchievementMarks, saveAchievementMarks } from "@/lib/achievements";
+import { parseRoute } from "@/lib/routes";
 
-const LOG_LIMIT = 12;
 
 export default function App() {
-  const [state, setState] = useState<AppState>(() => loadState());
+  const [navigation, setNavigation] = useState(() => ({ hash: window.location.hash, id: 0 }));
+  const hash = navigation.hash;
+  const route = parseRoute(hash);
+  useEffect(() => {
+    const navigate = () => { setNavigation(previous => ({ hash: window.location.hash, id: previous.id + 1 })); window.scrollTo({ top: 0 }); };
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
+  const [globalLoaded] = useState(loadAchievementMarks);
+  const [globalMarks, setGlobalMarks] = useState(globalLoaded.marks);
+  const [globalSaveFailed, setGlobalSaveFailed] = useState(false);
+  useEffect(() => { if (!globalLoaded.error) setGlobalSaveFailed(!saveAchievementMarks(globalMarks)); }, [globalLoaded.error, globalMarks]);
+  const [loaded] = useState(() => loadProfiles());
+  const [profiles, setProfiles] = useState(loaded.data);
+  const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
+  const state = activeProfile.state;
+  const setState = useCallback((update: AppState | ((current: AppState) => AppState)) => {
+    setProfiles(current => ({ ...current, profiles: current.profiles.map(p => p.id === current.activeId ? { ...p, state: typeof update === "function" ? update(p.state) : update } : p) }));
+  }, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectionSerial, setSelectionSerial] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("overall");
   const [query, setQuery] = useState("");
   const [onlyUnfinished, setOnlyUnfinished] = useState(false);
+  const [collection, setCollection] = useState<CollectionId>("all");
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [dismissBackup, setDismissBackup] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [saveFailed, setSaveFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const flashTimer = useRef<number | null>(null);
   const toastTimer = useRef<number | null>(null);
 
-  useEffect(() => saveState(state), [state]);
+  useEffect(() => { if (!loaded.error) setSaveFailed(!saveProfiles(profiles)); }, [profiles, loaded.error]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
+    const id = window.setInterval(() => setNow(new Date()), 60000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -66,6 +95,8 @@ export default function App() {
   const q = query.trim().toLowerCase();
   const matches = useCallback(
     (loc: Location) => {
+      if (!collectionMatches(collection, loc)) return false;
+      if (onlyMissing && state.progress[loc.id]?.done.found) return false;
       if (onlyUnfinished && progressFor(state, loc).complete) return false;
       if (!q) return true;
       const hay = [loc.name, loc.alt, loc.code, loc.desc, loc.group, state.progress[loc.id]?.note]
@@ -74,12 +105,12 @@ export default function App() {
         .toLowerCase();
       return hay.includes(q);
     },
-    [q, onlyUnfinished, state],
+    [q, onlyUnfinished, onlyMissing, collection, state],
   );
 
   const mapLocations = useMemo(
-    () => allLocations.filter((l) => l.category !== "secrets" || state.showSecrets),
-    [allLocations, state.showSecrets],
+    () => allLocations.filter((l) => (l.category !== "secrets" || state.showSecrets) && matches(l)),
+    [allLocations, state.showSecrets, matches],
   );
 
   const stats = useMemo<OverallStats>(() => {
@@ -166,7 +197,15 @@ export default function App() {
   const setTasks = (cat: CategoryId, tasks: TaskDef[]) => setState((s) => ({ ...s, tasks: { ...s.tasks, [cat]: tasks } }));
 
   const revealSecrets = () => setState((s) => ({ ...s, showSecrets: true }));
-  const toggleSecrets = () => setState((s) => ({ ...s, showSecrets: !s.showSecrets }));
+  const toggleSecrets = () => {
+    if (state.showSecrets && selectedId && byId.get(selectedId)?.category === "secrets") setSelectedId(null);
+    if (state.showSecrets) {
+      setHoverId(null);
+      setCollection("all");
+      setOnlyMissing(false);
+    }
+    setState((s) => ({ ...s, showSecrets: !s.showSecrets }));
+  };
 
   const addCustom = (c: { name: string; x?: number; y?: number; desc?: string }) => {
     const id = uid("custom");
@@ -194,6 +233,9 @@ export default function App() {
     const loc = byId.get(id);
     if (!loc) return;
     setSelectedId(id);
+    setSelectionSerial(v => v + 1);
+    if (!matches(loc)) { setQuery(""); setOnlyUnfinished(false); setOnlyMissing(false); setCollection("all"); }
+    if (loc.category === "secrets" && !state.showSecrets) setState(s => ({ ...s, showSecrets: true }));
     if (state.collapsed[loc.category]) {
       setState((s) => ({ ...s, collapsed: { ...s.collapsed, [loc.category]: false } }));
     }
@@ -210,7 +252,10 @@ export default function App() {
   };
 
   const exportJson = () => {
-    const blob = new Blob([serializeState(state)], { type: "application/json" });
+    const exported = { ...state, lastExportAt: Date.now() };
+    const blob = new Blob([serializeState(exported)], { type: "application/json" });
+    setState(exported);
+    setDismissBackup(false);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -226,8 +271,8 @@ export default function App() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const next = normalizeState(parsed);
-      if (!window.confirm("Заменить текущий журнал данными из файла?")) return;
+      const next = parseImport(parsed);
+      if (!window.confirm("Заменить текущий журнал и отметки advancements данными из файла?")) return;
       setState(next);
       showToast(`Журнал загружен · день ${next.day}`);
     } catch {
@@ -236,10 +281,65 @@ export default function App() {
   };
 
   const resetAll = () => {
-    if (!window.confirm("Снять ВСЕ отметки и очистить заметки? Свои точки и настройки колонок останутся.")) return;
-    setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets }));
+    if (!window.confirm("Снять отметки журнала и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
+    setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets, advancements: s.advancements }));
     setSelectedId(null);
     showToast("Журнал очищен. Новый обход.");
+  };
+
+  const switchProfile = (id: string) => {
+    setProfiles(p => ({ ...p, activeId: id })); setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+  };
+  const createProfile = () => {
+    const name = window.prompt("Название нового прохождения:")?.trim();
+    if (!name) return;
+    const id = uid("profile");
+    setProfiles(p => ({ ...p, activeId: id, profiles: [...p.profiles, { id, name: name.slice(0, 80), createdAt: Date.now(), state: defaultState() }] }));
+    setSelectedId(null); setHoverId(null); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
+  };
+  const renameProfile = () => {
+    const name = window.prompt("Новое название прохождения:", activeProfile.name)?.trim();
+    if (name) setProfiles(p => ({ ...p, profiles: p.profiles.map(x => x.id === p.activeId ? { ...x, name: name.slice(0, 80) } : x) }));
+  };
+  const deleteProfile = () => {
+    if (profiles.profiles.length <= 1) return;
+    if (!window.confirm(`Удалить прохождение «${activeProfile.name}» со всеми отметками? Действие необратимо. Сначала экспортируйте резервную копию.`)) return;
+    setProfiles(p => { const remaining = p.profiles.filter(x => x.id !== p.activeId); return { ...p, profiles: remaining, activeId: remaining[0].id }; });
+    setSelectedId(null); setHoverId(null); setDismissBackup(false);
+  };
+  const chooseCollection = (id: CollectionId) => {
+    if (id !== "all" && !state.showSecrets && !window.confirm("Показать спойлерные находки и карту?")) return;
+    if (id !== "all" && !state.showSecrets) revealSecrets();
+    setCollection(id);
+    if (id === "all") setOnlyMissing(false);
+    setOnlyUnfinished(false); setQuery("");
+    if (id !== "all") setState(s => ({ ...s, collapsed: { ...s.collapsed, secrets: false } }));
+  };
+  // Ссылки поиска и достижений открывают нужный объект после перехода на страницу журнала.
+  useEffect(() => {
+    const target = parseRoute(hash);
+    if (target.page !== 'journal') return;
+    if (target.location) select(target.location);
+    else if (target.category && CATEGORIES.some(c => c.id === target.category)) jumpToCategory(target.category as CategoryId);
+    else if (target.collection && COLLECTIONS.some(c => c.id === target.collection && c.id !== 'all')) {
+      setCollection(target.collection as CollectionId);
+      setOnlyMissing(false); setOnlyUnfinished(false); setQuery('');
+      setState(s => ({ ...s, showSecrets: true, collapsed: { ...s.collapsed, secrets: false } }));
+      window.setTimeout(() => document.getElementById('cat-secrets')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+  // URL является событием навигации; обновления прогресса не должны повторять переход.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation.id]);
+
+  const jumpToCategory = (id: CategoryId) => {
+    setQuery(''); setOnlyUnfinished(false); setOnlyMissing(false); setCollection('all');
+    setState(s => ({ ...s, collapsed: { ...s.collapsed, [id]: false } }));
+    window.setTimeout(() => document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+  const markAchievement = (kind: 'achievement' | 'advancement', id: string, value: boolean) => {
+    if (kind === 'achievement') {
+      if (!globalLoaded.error) setGlobalMarks(m => ({ ...m, [id]: value }));
+    } else if (!loaded.error) setState(s => ({ ...s, advancements: { ...s.advancements, [id]: value } }));
   };
 
   /* ---------- flavour ---------- */
@@ -251,6 +351,14 @@ export default function App() {
   });
   const creepy = now.getHours() === 3 && now.getMinutes() === 33;
   const selected = selectedId ? byId.get(selectedId) : undefined;
+  const nearby = selected && typeof selected.x === "number" && typeof selected.y === "number"
+    ? allLocations.filter(l => l.id !== selected.id && (state.showSecrets || l.category !== "secrets") && typeof l.x === "number" && typeof l.y === "number")
+      .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
+  const backupDue = Date.now() - (state.lastExportAt ?? activeProfile.createdAt) > 7 * 24 * 60 * 60 * 1000;
+
+  if (route.page === 'save-editor') return <SaveEditorPage locations={allLocations} progress={state.progress} />;
+  if (route.page === 'fun') return <FunPage key={hash} locations={allLocations} progress={state.progress} initialQuery={route.query} section={route.section} />;
+  if (route.page === 'achievements') return <AchievementsPage key={hash} locations={allLocations} progress={state.progress} item={route.item} globalMarks={globalMarks} globalError={globalLoaded.error} globalSaveFailed={globalSaveFailed} advancements={state.advancements} profileName={activeProfile.name} profiles={profiles.profiles} profileId={profiles.activeId} profileError={loaded.error} profileSaveFailed={saveFailed} onProfile={switchProfile} onMark={markAchievement} />;
 
   return (
     <div className="relative min-h-screen">
@@ -262,17 +370,26 @@ export default function App() {
       <div className="crt-overlay" aria-hidden />
 
       <div className="relative mx-auto max-w-[1540px] px-3 py-4 sm:px-5 lg:px-8">
+        <SiteNav page="journal" locations={allLocations} progress={state.progress} />
         <Header
           day={state.day}
           onDay={setDay}
           sound={state.sound}
           onToggleSound={toggleSound}
           stats={stats}
-          now={now}
           onExport={exportJson}
           onImport={importJson}
           onReset={resetAll}
         />
+
+        <section className="panel mt-4 flex flex-wrap items-center gap-2 p-3" aria-label="Профили прохождений">
+          <label className="text-xs text-phos-400">Прохождение <select className="input-term ml-2 w-auto" aria-label="Выбрать прохождение" value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <button type="button" className="btn-term" onClick={createProfile}>+ новое</button><button type="button" className="btn-term" onClick={renameProfile}>переименовать</button><button type="button" className="btn-term" disabled={profiles.profiles.length <= 1} onClick={deleteProfile}>удалить</button>
+          <span className="text-xs text-phos-600">Экспорт и импорт относятся к выбранному прохождению.</span>
+        </section>
+        {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">Пора сохранить резервную копию этого прохождения. <button type="button" className="btn-term" onClick={exportJson}>Экспорт JSON</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>Напомнить позже</button></div>}
+        {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера.</div>}
+        {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
@@ -300,6 +417,7 @@ export default function App() {
                 onHover={setHoverId}
               />
             </div>
+            {selected && nearby.length > 0 && <div className="panel corner p-4"><p className="panel-title">Рядом с «{selected.name}»</p><p className="mt-1 text-xs text-phos-600">По прямой на плоскости карты; высота и препятствия не учитываются.</p><ul className="mt-2 space-y-1">{nearby.map(({loc,distance}) => <li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => select(loc.id)}>{loc.name} · ≈{Math.round(distance)} м</button></li>)}</ul></div>}
             <div className="panel corner relative p-4">
               <EventLog log={state.log} />
             </div>
@@ -348,6 +466,31 @@ export default function App() {
               </div>
             </div>
 
+            <section className="panel corner p-3" aria-label="Коллекции">
+              <p className="panel-title">Коллекции</p>
+              <p className="mt-1 text-xs text-phos-600">Выберите коллекцию для фильтрации списка и карты. Числа — найдено / всего.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" className={cn("btn-term", collection === "all" && "border-phos-500 text-phos-200")} aria-pressed={collection === "all"} onClick={() => chooseCollection("all")}>Все точки</button>
+                {COLLECTIONS.filter(c => c.id !== "all").map(c => {
+                  const items = allLocations.filter(c.matches);
+                  const found = items.filter(l => state.progress[l.id]?.done.found).length;
+                  return <button key={c.id} type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id} onClick={() => chooseCollection(c.id)}>{c.label} <span className="tabular-nums">{found}/{items.length}</span></button>;
+                })}
+              </div>
+              {collection !== "all" && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-phos-800/40 pt-3 text-xs">
+                <span className="text-phos-400">Выбрано: {COLLECTIONS.find(c => c.id === collection)?.label}</span>
+                <label className="flex cursor-pointer items-center gap-2 text-phos-200">
+                  <input type="checkbox" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)} />
+                  Только ненайденные
+                </label>
+                <span className="text-phos-600">Без отметки «Найдено»; остальные колонки не учитываются.</span>
+              </div>}
+            </section>
+            <nav className="panel corner p-3" aria-label="Быстрый переход к категориям">
+              <p className="panel-title">Перейти к категории</p>
+              <div className="mt-2 flex flex-wrap gap-2">{CATEGORIES.map(cat => <button key={cat.id} type="button" className="btn-term" onClick={() => jumpToCategory(cat.id)}>{cat.title}</button>)}</div>
+              <p className="mt-2 text-xs text-phos-600">Переход сбрасывает фильтры списка; скрытые спойлеры останутся скрытыми.</p>
+            </nav>
             {CATEGORIES.map((cat) => {
               const all = byCategory[cat.id];
               const visible = all.filter(matches);
@@ -360,10 +503,12 @@ export default function App() {
                   visible={visible}
                   tasks={tasksFor(state, cat.id)}
                   selectedId={selectedId}
+                  selectionSerial={selectionSerial}
                   flashId={flashId}
                   onToggleCollapse={() => toggleCollapse(cat.id)}
                   onToggleTask={toggleTask}
                   onNote={setNote}
+                  onRitualStep={(key, value) => setState(s => ({ ...s, ritualSteps: { ...s.ritualSteps, [key]: value } }))}
                   onSelect={select}
                   onHover={setHoverId}
                   onRemoveCustom={cat.id === "custom" ? removeCustom : undefined}
@@ -400,7 +545,7 @@ export default function App() {
             день <span className="text-phos-400">{String(state.day).padStart(2, "0")}</span>
           </span>
           <span className="ml-auto normal-case tracking-normal text-phos-700">
-            данные локаций: voicesofthevoid.wiki.gg · сохраняется в браузере
+            источники: <a className="underline" href="https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items" target="_blank" rel="noreferrer">Voices of the Void Wiki</a> · сведения могут зависеть от версии игры · сохраняется в браузере
           </span>
         </footer>
       </div>

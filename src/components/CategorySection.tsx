@@ -12,10 +12,12 @@ interface Props {
   visible: Location[];
   tasks: TaskDef[];
   selectedId: string | null;
+  selectionSerial: number;
   flashId: string | null;
   onToggleCollapse: () => void;
   onToggleTask: (locId: string, key: string) => void;
   onNote: (locId: string, text: string) => void;
+  onRitualStep: (key: string, value: boolean) => void;
   onSelect: (locId: string) => void;
   onHover: (locId: string | null) => void;
   onRemoveCustom?: (locId: string) => void;
@@ -37,10 +39,12 @@ export default function CategorySection({
   visible,
   tasks,
   selectedId,
+  selectionSerial,
   flashId,
   onToggleCollapse,
   onToggleTask,
   onNote,
+  onRitualStep,
   onSelect,
   onHover,
   onRemoveCustom,
@@ -87,12 +91,13 @@ export default function CategorySection({
   };
   const removeTask = (i: number) => {
     if (tasks.length <= 1) return;
+    if (!window.confirm("Удалить колонку? Её отметки сохранятся и восстановятся при возврате стандартной колонки.")) return;
     onSetTasks(tasks.filter((_, idx) => idx !== i));
   };
   const addTask = () => {
     const label = newTask.trim();
     if (!label) return;
-    const key = `t-${Date.now().toString(36)}`;
+    const key = `t-${crypto.randomUUID()}`;
     onSetTasks([...tasks, { key, label }]);
     setNewTask("");
   };
@@ -194,49 +199,54 @@ export default function CategorySection({
 
       {!collapsed && (
         <div className="relative">
-          {masked && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink-950/40">
+          {masked ? (
+            <div className="flex flex-wrap items-center gap-3 px-4 py-4">
+              <p className="text-xs text-phos-600">Список тайников скрыт, чтобы не показывать спойлеры.</p>
               <button type="button" onClick={onRevealSecrets} className="btn-term border-alert/50 px-4 py-2 text-alert hover:border-alert hover:text-alert">
                 ▣ показать спойлеры
               </button>
             </div>
+          ) : (
+            <div>
+              {visible.length === 0 && (
+                <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
+                  {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}
+                </p>
+              )}
+              {groups.map((g) => (
+                <div key={g.label || "default"}>
+                  {g.label && (
+                    <div className="flex items-center gap-3 px-4 pb-1 pt-3">
+                      <span className="text-[10px] uppercase tracking-[0.25em] text-phos-600">{g.label}</span>
+                      <span className="h-px flex-1 bg-gradient-to-r from-phos-800/60 to-transparent" />
+                    </div>
+                  )}
+                  <ul className="divide-y divide-ink-700/60">
+                    {g.items.map((loc) => (
+                      <LocationRow
+                        key={loc.id}
+                        loc={loc}
+                        ritualSteps={state.ritualSteps}
+                        onRitualStep={onRitualStep}
+                        tasks={tasks}
+                        ls={state.progress[loc.id] ?? EMPTY_LOC}
+                        progress={progressFor(state, loc)}
+                        selected={selectedId === loc.id}
+                        selectionSerial={selectionSerial}
+                        flash={flashId === loc.id}
+                        onToggle={(key) => onToggleTask(loc.id, key)}
+                        onNote={(text) => onNote(loc.id, text)}
+                        onSelect={() => onSelect(loc.id)}
+                        onHover={(h) => onHover(h ? loc.id : null)}
+                        onRemove={onRemoveCustom ? () => onRemoveCustom(loc.id) : undefined}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {children}
+            </div>
           )}
-          <div className={cn(masked && "spoiler-mask")}>
-            {visible.length === 0 && (
-              <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
-                {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}
-              </p>
-            )}
-            {groups.map((g) => (
-              <div key={g.label || "default"}>
-                {g.label && (
-                  <div className="flex items-center gap-3 px-4 pb-1 pt-3">
-                    <span className="text-[10px] uppercase tracking-[0.25em] text-phos-600">{g.label}</span>
-                    <span className="h-px flex-1 bg-gradient-to-r from-phos-800/60 to-transparent" />
-                  </div>
-                )}
-                <ul className="divide-y divide-ink-700/60">
-                  {g.items.map((loc) => (
-                    <LocationRow
-                      key={loc.id}
-                      loc={loc}
-                      tasks={tasks}
-                      ls={state.progress[loc.id] ?? EMPTY_LOC}
-                      progress={progressFor(state, loc)}
-                      selected={selectedId === loc.id}
-                      flash={flashId === loc.id}
-                      onToggle={(key) => onToggleTask(loc.id, key)}
-                      onNote={(text) => onNote(loc.id, text)}
-                      onSelect={() => onSelect(loc.id)}
-                      onHover={(h) => onHover(h ? loc.id : null)}
-                      onRemove={onRemoveCustom ? () => onRemoveCustom(loc.id) : undefined}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
-            {children}
-          </div>
         </div>
       )}
     </section>

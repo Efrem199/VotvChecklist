@@ -1,0 +1,57 @@
+import { useRef, useState } from 'react';
+import bg from '@/assets/bg.jpg';
+import SiteNav from './SiteNav';
+import type { Location } from '@/data/locations';
+import type { LocState } from '@/lib/state';
+import { parseSave, exportSave, type SaveDocument, type Changes } from '@/lib/saveEditor';
+
+const labels: Record<string, [string,string]> = {
+ Points:['Очки','Баланс текущего прохождения.'], food:['Сытость','Внутреннее значение игры, не обязательно процент.'], sleep:['Сон','Внутреннее значение игры.'], battery:['Батарея','Заряд батареи.'], health:['Здоровье','Текущее здоровье.'], maxHealth:['Максимальное здоровье','Максимум здоровья.'],
+ 'upgrades.upg_downloadSpd':['Скорость загрузки сигнала','Уровень улучшения.'], 'upgrades.upg_processLvl':['Уровень обработки','Уровень улучшения.'], 'upgrades.upg_processSpeed':['Скорость обработки','Уровень улучшения.'], 'upgrades.upg_coordDrift':['Смещение координат','Уровень улучшения.'], 'upgrades.upg_coordPingSpeed':['Скорость пинга','Уровень улучшения.'], 'upgrades.upg_coordMovementSpeed':['Движение координат','Уровень улучшения.'], 'upgrades.upg_coordRadarSpeed':['Скорость радара координат','Уровень улучшения.'], 'upgrades.upg_coordCooldown':['Перезарядка координат','Уровень улучшения.'], 'upgrades.upg_scanner':['Дальность сканера','Уровень улучшения.'], 'upgrades.upg_scannerFr':['Частота сканера','Уровень улучшения.'], 'upgrades.upg_detecQual':['Качество обнаружения','Уровень улучшения.'], 'upgrades.upg_radarHist':['История радара','Уровень улучшения.'], 'upgrades.upg_radar_speed':['Скорость радара','Уровень улучшения.'], 'upgrades.upg_compTime':['Время вычислений','Уровень улучшения.'], 'upgrades.upg_triangleProb':['Вероятность триангуляции','Уровень улучшения.'],
+ 'localGameRules.foodSpoilage':['Порча еды','Правило сохранения.'], 'localGameRules.foodFatigue':['Усталость от еды','Правило сохранения.'], 'localGameRules.physEvents':['Физические события','Правило сохранения.'], 'localGameRules.funnySetting':['Funny rule','Правило сохранения.'], 'localGameRules.customContent':['Пользовательский контент','Правило сохранения.'],
+};
+type Values = Record<string,string | boolean>;
+function download(bytes: Uint8Array, name: string) {
+ const blob = new Blob([bytes as BlobPart],{type:'application/octet-stream'});
+ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+export default function SaveEditorPage({locations,progress}:{locations:Location[];progress:Record<string,LocState>}) {
+ const [doc,setDoc]=useState<SaveDocument|null>(null), [filename,setFilename]=useState(''), [values,setValues]=useState<Values>({}), [query,setQuery]=useState(''), [error,setError]=useState(''), [allowFlags,setAllowFlags]=useState(false), [backup,setBackup]=useState(false);
+ const loadId=useRef(0);
+ async function load(file: File | undefined) {
+  if (!file) return;
+  const next=++loadId.current; setDoc(null); setFilename(file.name); setValues({}); setAllowFlags(false); setBackup(false); setError('');
+  try {
+   if(file.size > 64*1024*1024) throw new Error('Файл больше 64 МБ.');
+   const parsed=parseSave(new Uint8Array(await file.arrayBuffer()));
+   if (next === loadId.current) setDoc(parsed);
+  } catch (e) {if (next === loadId.current) setError(e instanceof Error ? e.message : 'Не удалось прочитать файл.');}
+ }
+ const update=(key:string,value:string|boolean)=>setValues(old=>({...old,[key]:value}));
+ const changes: Changes = {}; const invalid: string[]=[];
+ if(doc) {
+  for(const f of doc.fields) {
+   const key=`field:${f.key}`, value=values[key]; if(value===undefined) continue;
+   if(f.kind==='bool') { if(typeof value==='boolean' && value!==f.value) changes[key]=value; }
+   else { const n=typeof value==='string' && value.trim() ? Number(value) : NaN; if(!Number.isFinite(n) || n<0 || n>100000000 || (f.kind==='int' && !Number.isInteger(n))) invalid.push(f.key); else if(n!==f.value) changes[key]=n; }
+  }
+  for(const f of doc.flags) {const key=`flag:${f.index}`, v=values[key]; if(typeof v==='boolean' && v!==f.value) changes[key]=v;}
+ }
+ function save() {
+  if(!doc || invalid.length || !backup || (Object.keys(changes).some(k=>k.startsWith('flag:')) && !allowFlags)) return;
+  try {download(exportSave(doc,changes),filename); setError('');} catch(e) {setError(e instanceof Error?e.message:'Не удалось собрать файл.');}
+ }
+ return <div className="relative min-h-screen"><div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden><img src={bg} alt="" className="h-full w-full object-cover opacity-85"/><div className="absolute inset-0 bg-ink-950/85"/></div><div className="relative mx-auto max-w-[1200px] px-3 py-4 sm:px-5">
+  <SiteNav page="save-editor" locations={locations} progress={progress}/>
+  <header className="panel corner p-5"><p className="panel-title">АРХИВ ОПЕРАТОРА / ЭКСПЕРИМЕНТ</p><h1 className="glow mt-3 font-pixel text-lg leading-relaxed text-phos-300">РЕДАКТОР СОХРАНЕНИЙ</h1><p className="mt-3 text-sm">Загрузите data.sav или s_*.sav из папки <code>%LOCALAPPDATA%\VotV\Saved\SaveGames</code>. Обработка и скачивание выполняются в браузере; файл не отправляется на сервер и не сохраняется сайтом.</p>
+  <p className="mt-3 border-l-2 border-amber-glow pl-3 text-sm text-amber-glow">Экспериментально: в игре результат не проверен. Закройте игру и сделайте резервные копии обоих файлов до замены. Сайт меняет только выбранные поля, не награды и не содержимое инвентаря. Не используйте на единственном сохранении.</p>
+  <p className="mt-2 text-xs text-phos-500">Поддерживается семейство 0.9.0, проверено на примерах 0.9.0n; файл не различает все буквенные патчи. 0.10.0 и другие версии не поддерживаются.</p></header>
+  <main className="mt-4 space-y-4"><section className="panel corner p-4" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void load(e.dataTransfer.files[0]);}}><h2 className="font-bold text-phos-300">1. Откройте файл</h2><p className="mt-2 text-xs">Перетащите файл сюда или выберите на компьютере. Новый файл заменит текущий в редакторе.</p><input className="mt-3 block max-w-full text-sm" type="file" accept=".sav" aria-label="Выбрать сохранение" onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}}/>{error && <p role="alert" className="mt-3 text-alert">{error}</p>}{doc && <p className="mt-3 text-sm text-phos-300">{filename} · {doc.kind==='global'?'общие данные':'прохождение'} · версия в файле {doc.version}</p>}</section>
+  {doc && <><section className="panel corner p-4"><h2 className="font-bold text-phos-300">2. Измените значения</h2><p className="mt-2 text-xs text-phos-500">Показаны только распознанные поля. Числа — внутренние значения, допустимый диапазон редактора 0–100 000 000; он не гарантирует допустимость в игре.</p>
+  {(['Основное','Улучшения','Правила'] as const).map(group=>{const fields=doc.fields.filter(f=>group==='Основное'?!f.key.includes('.'):group==='Улучшения'?f.key.startsWith('upgrades.'):f.key.startsWith('localGameRules.')); if(!fields.length)return null;return <div key={group} className="mt-4"><h3 className="text-sm font-bold text-phos-400">{group}</h3><div className="mt-2 grid gap-2 sm:grid-cols-2">{fields.map(f=>{const key=`field:${f.key}`, label=labels[f.key] ?? [f.key,''];return <label key={key} className="rounded border border-phos-900 p-3 text-sm"><span className="block text-phos-300">{label[0]}</span><span className="block text-xs text-phos-500">{label[1]} <code>{f.key}</code></span>{f.kind==='bool'? <input className="mt-2" type="checkbox" checked={typeof values[key]==='boolean'?values[key] as boolean:f.value as boolean} onChange={e=>update(key,e.target.checked)}/> : <input aria-label={label[0]} className="input-term mt-2 w-full" type="number" min="0" max="100000000" step={f.kind==='int'?'1':'any'} value={typeof values[key]==='string'?values[key] as string:String(f.value)} onChange={e=>update(key,e.target.value)}/>}</label>})}</div></div>})}
+  {doc.flags.length>0 && <div className="mt-5 border-t border-phos-900 pt-4"><h3 className="font-bold text-phos-400">{doc.kind==='global'?'Общие достижения':'Advancements прохождения'} · {doc.flags.length}</h3><p className="mt-2 text-xs text-amber-glow">Экспериментально: это только флаги из файла. Их связь с прогрессом, названиями и наградами не подтверждена в игре; награды и предметы могут не открыться. Показаны исходные ID, а не предположительные названия. Повторяющиеся ID — разные позиции списка.</p><label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={allowFlags} onChange={e=>setAllowFlags(e.target.checked)}/> Понимаю риск и хочу изменить флаги</label><label className="mt-3 block text-xs">Поиск по ID <input className="input-term mt-1 w-full" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Например sandbox"/></label><div className="mt-2 grid max-h-96 gap-2 overflow-auto sm:grid-cols-2">{doc.flags.filter(f=>f.id.toLowerCase().includes(query.toLowerCase())).map(f=>{const key=`flag:${f.index}`;return <label key={key} className="flex items-center gap-2 rounded border border-phos-900 p-2 text-sm"><input type="checkbox" disabled={!allowFlags} checked={typeof values[key]==='boolean'?values[key] as boolean:f.value} onChange={e=>update(key,e.target.checked)}/><code>{f.id}</code><span className="text-xs text-phos-500">#{f.index+1}</span></label>})}</div></div>}
+  </section><section className="panel corner p-4"><h2 className="font-bold text-phos-300">3. Проверьте и скачайте</h2><p className="mt-2 text-sm">Изменений: {Object.keys(changes).length}. Неизменённая часть файла сохраняется побайтно.</p>{invalid.length>0 && <p role="alert" className="mt-2 text-alert">Проверьте числовые поля: {invalid.join(', ')}</p>}{Object.keys(changes).some(k=>k.startsWith('flag:')) && !allowFlags && <p role="alert" className="mt-2 text-alert">Разрешите изменения флагов или сбросьте их.</p>}
+  {Object.keys(changes).length>0 && <details className="mt-2 text-sm"><summary className="cursor-pointer">Показать список изменений</summary><ul className="mt-2 list-disc pl-5">{Object.entries(changes).map(([key,val])=>{const original=key.startsWith('field:')?doc.fields.find(f=>`field:${f.key}`===key)?.value:doc.flags.find(f=>`flag:${f.index}`===key)?.value; const flag=key.startsWith('flag:')?doc.flags.find(f=>`flag:${f.index}`===key):undefined;return <li key={key}>{labels[key.slice(6)]?.[0] ?? (flag?`${flag.id} #${flag.index+1}`:key)}: {String(original)} → {String(val)}</li>})}</ul></details>}
+  <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={backup} onChange={e=>setBackup(e.target.checked)}/> Я сохранил резервную копию и закрыл игру</label><div className="mt-3 flex flex-wrap gap-2"><button type="button" className="btn-term" onClick={()=>download(doc.original,filename)}>Скачать оригинал</button><button type="button" className="btn-term" onClick={save} disabled={!backup || invalid.length>0 || !Object.keys(changes).length || (!allowFlags && Object.keys(changes).some(k=>k.startsWith('flag:')))}>Скачать изменённый файл</button><button type="button" className="btn-term" onClick={()=>setValues({})}>Сбросить изменения</button></div><p className="mt-3 text-xs text-phos-500">Файл скачивается отдельно: сайт не перезаписывает сохранение игры. После проверки имени вручную замените копию в папке SaveGames.</p></section></>}
+  </main></div></div>;
+}

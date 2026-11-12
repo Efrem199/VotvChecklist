@@ -4,20 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#050706" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9IiMwNTBiMDgiLz48cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iNTgiIGhlaWdodD0iNTgiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzOTdhNDUiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjMyIiBjeT0iMjkiIHI9IjE5IiBmaWxsPSIjMGIxYjEwIiBzdHJva2U9IiM2Y2ZmNWMiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjMyIiBjeT0iMjkiIHI9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiMzOTdhNDUiLz48cGF0aCBkPSJNMzIgMTB2MzhNMTMgMjloMzgiIHN0cm9rZT0iIzI4NWUzMyIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTTMyIDI5IDQ1IDE2IiBzdHJva2U9IiM2Y2ZmNWMiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iNDAiIGN5PSIyMiIgcj0iMi41IiBmaWxsPSIjYjlmZmFiIi8+PHBhdGggZD0ibTE5IDUzIDQgNCA4LTkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzZjZmY1YyIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMzYgNTJoMTJNMzYgNTZoOSIgc3Ryb2tlPSIjNmNmZjVjIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" />
     <meta
       name="description"
       content="Журнал обхода для Voices of the Void: тарелки, трансформаторы, радары и точки интереса Dunkeltaler Forest. Отмечай камеры, апгрейды серверов и посещённые места."
     />
     <title>VoTV · Журнал обхода — Dunkeltaler Forest</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Press+Start+2P&display=swap"
-      rel="stylesheet"
-    />
+
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // При публикации корня репозитория Pages отдаёт исходный HTML вместо сборки.
+      // В собранном docs/index.html тега src/main.tsx нет, поэтому редиректа там не будет.
+      if (location.hostname.endsWith(".github.io") && document.querySelector('script[type="module"][src="/src/main.tsx"]')) {
+        const target = new URL("docs/", location.href);
+        target.search = location.search;
+        target.hash = location.hash;
+        location.replace(target.href);
+      }
+    </script>
+    <noscript>Для работы приложения включите JavaScript. <a href="./docs/">Открыть сборку</a>.</noscript>
   </body>
 </html>
