@@ -191,7 +191,11 @@ export default function App() {
   const revealSecrets = () => setState((s) => ({ ...s, showSecrets: true }));
   const toggleSecrets = () => {
     if (state.showSecrets && selectedId && byId.get(selectedId)?.category === "secrets") setSelectedId(null);
-    if (state.showSecrets) setHoverId(null);
+    if (state.showSecrets) {
+      setHoverId(null);
+      setCollection("all");
+      setOnlyMissing(false);
+    }
     setState((s) => ({ ...s, showSecrets: !s.showSecrets }));
   };
 
@@ -294,10 +298,12 @@ export default function App() {
     setProfiles(p => { const remaining = p.profiles.filter(x => x.id !== p.activeId); return { ...p, profiles: remaining, activeId: remaining[0].id }; });
     setSelectedId(null); setHoverId(null); setDismissBackup(false);
   };
-  const chooseCollection = (id: CollectionId, missing = false) => {
+  const chooseCollection = (id: CollectionId) => {
     if (id !== "all" && !state.showSecrets && !window.confirm("Показать спойлерные находки и карту?")) return;
     if (id !== "all" && !state.showSecrets) revealSecrets();
-    setCollection(id); setOnlyMissing(missing); setOnlyUnfinished(false); setQuery("");
+    setCollection(id);
+    if (id === "all") setOnlyMissing(false);
+    setOnlyUnfinished(false); setQuery("");
     if (id !== "all") setState(s => ({ ...s, collapsed: { ...s.collapsed, secrets: false } }));
   };
   /* ---------- flavour ---------- */
@@ -423,9 +429,24 @@ export default function App() {
             </div>
 
             <section className="panel corner p-3" aria-label="Коллекции">
-              <p className="panel-title">Коллекции · найдено</p>
-              <div className="mt-2 flex flex-wrap gap-2">{COLLECTIONS.filter(c => c.id !== "all").map(c => { const items = allLocations.filter(c.matches); const found = items.filter(l => state.progress[l.id]?.done.found).length; return <div key={c.id} className="flex gap-1"><button type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id && !onlyMissing} onClick={()=>chooseCollection(c.id)}>{c.label} {found}/{items.length}</button><button type="button" className="btn-term" aria-label={`Показать недостающие: ${c.label}`} onClick={()=>chooseCollection(c.id, true)}>осталось {items.length-found}</button></div>; })}<button type="button" className="btn-term" aria-pressed={collection === "all"} onClick={()=>chooseCollection("all")}>Все точки</button></div>
-              {collection !== "all" && <p className="mt-2 text-xs text-phos-600">Фильтр: {COLLECTIONS.find(c => c.id === collection)?.label}{onlyMissing ? " · только без отметки «Найдено»" : ""}. Отметки считаются независимо от остальных колонок.</p>}
+              <p className="panel-title">Коллекции</p>
+              <p className="mt-1 text-xs text-phos-600">Выберите коллекцию для фильтрации списка и карты. Числа — найдено / всего.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" className={cn("btn-term", collection === "all" && "border-phos-500 text-phos-200")} aria-pressed={collection === "all"} onClick={() => chooseCollection("all")}>Все точки</button>
+                {COLLECTIONS.filter(c => c.id !== "all").map(c => {
+                  const items = allLocations.filter(c.matches);
+                  const found = items.filter(l => state.progress[l.id]?.done.found).length;
+                  return <button key={c.id} type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id} onClick={() => chooseCollection(c.id)}>{c.label} <span className="tabular-nums">{found}/{items.length}</span></button>;
+                })}
+              </div>
+              {collection !== "all" && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-phos-800/40 pt-3 text-xs">
+                <span className="text-phos-400">Выбрано: {COLLECTIONS.find(c => c.id === collection)?.label}</span>
+                <label className="flex cursor-pointer items-center gap-2 text-phos-200">
+                  <input type="checkbox" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)} />
+                  Только ненайденные
+                </label>
+                <span className="text-phos-600">Без отметки «Найдено»; остальные колонки не учитываются.</span>
+              </div>}
             </section>
             {CATEGORIES.map((cat) => {
               const all = byCategory[cat.id];
