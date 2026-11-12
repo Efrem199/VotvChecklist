@@ -4,6 +4,8 @@ import type { Location, TaskDef, MarkerKind } from "@/data/locations";
 import type { LocState, LocProgress } from "@/lib/state";
 import { wikiImage } from "@/data/wikiImages";
 import { RITUALS } from "@/data/rituals";
+import { reviewFor } from "@/data/review";
+import { acquisitionFor } from "@/data/acquisition";
 import TaskChip, { toneFor } from "./TaskChip";
 
 interface Props {
@@ -83,6 +85,8 @@ export default function LocationRow({
   const [imageFailed, setImageFailed] = useState(false);
   const image = wikiImage(loc.id);
   const steps = RITUALS[loc.id];
+  const review = reviewFor(loc);
+  const acquisition = acquisitionFor(loc.id);
   const status = progress.complete ? "done" : progress.started ? "partial" : "none";
   const hasCoords = typeof loc.x === "number" && typeof loc.y === "number";
   const showNote = noteOpen;
@@ -184,6 +188,17 @@ export default function LocationRow({
           <h3 className="font-bold text-phos-300">{loc.name}</h3>
           {hasCoords ? <p className="mt-1 tabular-nums text-phos-500">X: {loc.x} · Y: {loc.y}</p> : <p className="mt-1 text-phos-600">Точные координаты не указаны.</p>}
           {loc.desc && <p className="mt-2">{loc.desc}</p>}
+          {acquisition?.requirements && <div className="mt-3 border-l-2 border-cam pl-3"><p className="font-bold text-cam">Условия и подготовка</p><p className="mt-1">{acquisition.requirements}</p></div>}
+          {acquisition?.warning && <div className="mt-3 border border-amber-glow/60 bg-amber-950/30 p-3 text-amber-glow"><p className="font-bold">⚠ Важно перед получением</p><p className="mt-1">{acquisition.warning}</p></div>}
+          <section aria-label={`Достоверность: ${loc.name}`} className="mt-4 border border-ink-600 p-3 text-xs">
+            <h4 className="font-bold text-phos-300">Источник и достоверность</h4>
+            <p className="mt-1">{review.status === 'wiki-reviewed' ? 'Сверено с текстом вики (не проверено в игре)' : review.status === 'disputed' ? '⚠ Данные различаются или требуют уточнения' : review.status === 'user' ? 'Пользовательская точка — данные вики не применяются' : 'Не сверено в рамках этой проверки'}</p>
+            {review.scope && <p className="mt-1 text-phos-500">Что сверено: {review.scope}.</p>}
+            {review.checkedAt && <p className="mt-1 text-phos-500">Сверка источников: {review.checkedAt.split('-').reverse().join('.')}.</p>}
+            {review.status !== 'user' && <p className="mt-1 text-phos-500">Версия игры: {review.gameVersion ?? 'не установлена; совместимость с вашей версией не подтверждена'}.</p>}
+            {review.note && <p className="mt-2 text-amber-glow">{review.note}</p>}
+            {review.sources && <ul className="mt-2 space-y-1">{review.sources.map(source => <li key={source.url}><a className="text-phos-400 underline" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a></li>)}</ul>}
+          </section>
           {image && <div className="mt-3"><p className="mb-2 text-xs text-phos-600">Изображение загружается с Voices of the Void Wiki и может содержать спойлеры.</p>{!imageFailed ? <a href={image.file} target="_blank" rel="noreferrer"><img src={image.url} alt={`Расположение: ${loc.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className="max-h-72 max-w-full border border-phos-700 object-contain" /></a> : <p className="text-xs text-amber-glow">Не удалось загрузить изображение; <a href={image.file} target="_blank" rel="noreferrer" className="underline">открыть файл на вики</a>.</p>}<a href={image.file} target="_blank" rel="noreferrer" className="text-xs text-phos-400 underline">Страница файла и права ↗</a></div>}
           {steps && <fieldset className="mt-4"><legend className="text-phos-300">Шаги ритуала</legend><p className="text-xs text-phos-600">Отметки шагов независимы от отметки «Найдено».</p><ol className="mt-2 space-y-2">{steps.map((step, i) => { const key = `${loc.id}:${i}`; return <li key={key}><label className="flex cursor-pointer gap-2"><input type="checkbox" checked={Boolean(ritualSteps[key])} onChange={e => onRitualStep(key, e.target.checked)} /><span>{step}</span></label></li>; })}</ol></fieldset>}
           {loc.source && <p className="mt-3"><a className="text-phos-400 underline" href={loc.source} target="_blank" rel="noreferrer">Описание на вики ↗</a></p>}

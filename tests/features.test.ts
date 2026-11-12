@@ -44,3 +44,22 @@ test('коллекции и изображения привязаны к кон�
  assert.match(wikiImage('burger-server')!.file,/ChickenSandwich_ServerRoom/);
  assert.equal(wikiImage('dish-b'),undefined);
 });
+
+test('достоверность: пользовательские и несверенные точки не выдаются за подтверждённые', async () => {
+ const {reviewFor} = await import('../src/data/review');
+ const find = (id:string) => BUILTIN_LOCATIONS.find(l=>l.id===id)!;
+ const burger = reviewFor(find('burger-server'));
+ assert.equal(burger.status,'wiki-reviewed'); assert.equal(burger.checkedAt,'2026-11-12'); assert.equal(burger.gameVersion,undefined);
+ assert.match(burger.sources![0].url,/oldid=24700/);
+ const disputed = reviewFor(find('burger-buried'));
+ assert.equal(disputed.status,'disputed'); assert.equal(disputed.sources?.length,2); assert.match(disputed.note!,/-584\.3/); assert.match(disputed.note!,/-584\.7/);
+ assert.equal(reviewFor(find('dish-b')).status,'unreviewed');
+ assert.equal(reviewFor({id:'x',name:'моя',category:'custom',kind:'custom'}).status,'user');
+});
+
+test('предупреждения о расходовании и одноразовых ритуалах связаны с предметами', async () => {
+ const {acquisitionFor} = await import('../src/data/acquisition');
+ assert.match(acquisitionFor('argemia-black')!.warning!,/Одноразовый/);
+ assert.match(acquisitionFor('argemia-white')!.warning!,/исчезают/);
+ assert.equal(acquisitionFor('dish-b'),undefined);
+});

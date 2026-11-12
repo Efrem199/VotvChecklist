@@ -33,3 +33,14 @@ test('группа маркеров раскрывается и точку мо�
  assert.match(view.getByLabelText('Схема массива Dunkeltaler Forest').getAttribute('viewBox')!,/1000/);
  cleanup();
 });
+
+test('карточка показывает разногласие источников и не выдумывает версию', () => {
+ const loc=BUILTIN_LOCATIONS.find(l=>l.id==='burger-buried')!;
+ const view=render(React.createElement('ul',null,React.createElement(LocationRow,{loc,tasks:DEFAULT_TASKS.secrets,ls:{done:{},note:''},progress:{done:0,total:2,complete:false,started:false},selected:false,flash:false,onToggle:()=>{},onNote:()=>{},onSelect:()=>{},onHover:()=>{},ritualSteps:{},onRitualStep:()=>{}})));
+ fireEvent.click(view.getByRole('button',{name:`Подробности: ${loc.name}`}));
+ assert.ok(view.getByText(/Данные различаются/));
+ assert.ok(view.getByText(/Версия игры: не установлена/));
+ assert.ok(view.getByText(/Y:-584.7/));
+ assert.ok(view.getByRole('link',{name:/Раскопки/}).getAttribute('href')?.includes('oldid=24727'));
+ cleanup();
+});
