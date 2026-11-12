@@ -6,6 +6,7 @@ const burgerSource = wiki + "Miscellaneous_Collectibles#Chicken_Sandwiches";
 const plushSource = wiki + "Argemia_Plushies";
 const toolsSource = wiki + "Tools";
 const ritualSource = wiki + "Miscellaneous_Collectibles";
+const digSource = "https://voicesofthevoid.wiki.gg/wiki/Digging#Unique";
 function entry(id: string, name: string, x: number | undefined, y: number | undefined, desc: string, group: string, source: string): Location {
   return { id, name, x, y, desc, group, source, category: "secrets", kind: "secret" };
 }
@@ -74,6 +75,13 @@ export const EXTRA_SECRETS: Location[] = [
  ...burgers.map(([id,x,y,desc],i) => entry(id === "tr2" ? "s-burger-tr2" : `burger-${id}`, `Сэндвич ${String(i+1).padStart(2,"0")}`, x,y,desc,"Куриные сэндвичи · 21",burgerSource)),
  ...plushies.map(([id,name,x,y,desc]) => entry(`argemia-${id}`,`Аргемия · ${name}`,x,y,desc,"Плюшевые Аргемии",plushSource)),
  ...tools.map(([id,name,desc]) => entry(`tool-${id}`,name,undefined,undefined,desc,"Полезные инструменты · координаты предмета не указаны в источнике",toolsSource)),
+ entry("dig-cactus","Кактусы",147.7,-10.5,"Закопаны; нужна лопата или грабли.","Закопанные находки",digSource),
+ entry("dig-maid-safe","Сейф с костюмом горничной",-357.4,-488.8,"Выкопать сейф с костюмом горничной.","Закопанные находки",digSource),
+ entry("dig-unnamed","Диск «unnamed» уровня 3",16.17,23.19,"Закопан у базы.","Закопанные находки",digSource),
+ entry("dig-basalt","Базальтовые столбы",465.1,-85.9,"Закопаны; нужна лопата или грабли.","Закопанные находки",digSource),
+ entry("dig-dream","Dream Plush",352.9,-311.8,"Закопанная игрушка.","Закопанные находки",digSource),
+ entry("dig-cyan-disputed","Аргемия Nuclear Cyan · данные противоречивы",634,181.4,"Страница раскопок указывает эту точку, но страница Аргемий не описывает такой вариант и указывает ядерную жёлтую в другой точке. Сведения требуют проверки в игре.","Закопанные находки",digSource),
+ ...([[-524.3,-479.1],[-532.7,-481.2],[-524.1,-471.1],[-532.1,-472.5],[-541.1,-475.4],[-529.9,-462.7]] as const).map(([x,y],i)=>entry(`dig-joint-${i+1}`,`Коробка шарниров ${i+1}`,x,y,"Закопанная коробка шарниров; нужна лопата или грабли.","Закопанные находки",digSource)),
  entry("plush-kel","Кукла Kel",undefined,undefined,"В домике ариралов на дереве на 25-й день после записки Brownie Trail; нужна лояльная репутация.","Другие находки",ritualSource+"#Kel_Doll"),
  entry("plush-antibreather","Плюшевый Antibreather",undefined,undefined,"В большом гнезде в пещере ровно в 03:33; дождись, когда существо уйдёт и можно будет войти.","Другие находки",ritualSource+"#Antibreather_Plush"),
  entry("tool-helmet","Велошлем",-50.62,637.94,"На скале южнее Whiskey.","Полезные инструменты",toolsSource),
