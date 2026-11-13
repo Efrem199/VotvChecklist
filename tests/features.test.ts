@@ -14,13 +14,11 @@ test('миграция старого журнала и раздельное х�
  values.set(STORAGE_KEY,JSON.stringify(old));
  const loaded = loadProfiles();
  assert.equal(loaded.error,false); assert.equal(loaded.data.profiles[0].state.day,21);
- assert.equal(loadProfiles('en').data.profiles[0].name, 'Main playthrough');
- assert.equal(loadProfiles('ru').data.profiles[0].name, 'Основное прохождение');
+ assert.equal(loadProfiles().data.profiles[0].name, 'Default');
  const second = {id:'second',name:'Второй',createdAt:1,state:defaultState()};
  loaded.data.profiles.push(second); loaded.data.activeId='second';
  second.state.ritualSteps['argemia-white:0'] = true;
  assert.equal(saveProfiles(loaded.data),true);
- assert.equal(loadProfiles('en').data.profiles[0].name,'Основное прохождение'); // Existing names are user data.
  const reloaded=loadProfiles().data;
  assert.equal(reloaded.activeId,'second'); assert.equal(reloaded.profiles[0].state.progress['dish-b'].note,'заметка');
  assert.equal(reloaded.profiles[1].state.ritualSteps['argemia-white:0'],true);
@@ -65,4 +63,28 @@ test('предупреждения о расходовании и однораз
  assert.match(acquisitionFor('argemia-black')!.warning!,/Одноразовый/);
  assert.match(acquisitionFor('argemia-white')!.warning!,/исчезают/);
  assert.equal(acquisitionFor('dish-b'),undefined);
+});
+
+test('legacy default profile names migrate without losing progress or changing custom profiles', () => {
+ const values = new Map<string,string>();
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>values.get(k) ?? null,setItem:(k:string,v:string)=>values.set(k,v)}});
+ try {
+  for (const name of ['Основное прохождение','Main playthrough','Default','Мой профиль']) {
+   const state=defaultState(); state.day=37; state.progress['dish-b']={done:{visited:true},note:'keep'}; state.plannerSteps['omega:ai']=true;
+   const input={version:1,activeId:'other',profiles:[{id:'default',name,createdAt:123,state},{id:'other',name:'Основное прохождение',createdAt:456,state:defaultState()}]};
+   values.set(PROFILES_KEY,JSON.stringify(input));
+   const result=loadProfiles();
+   assert.equal(result.error,false);
+   assert.equal(result.data.activeId,'other');
+   assert.equal(result.data.profiles[0].name,name==='Основное прохождение'||name==='Main playthrough'?'Default':name);
+   assert.equal(result.data.profiles[0].createdAt,123);
+   assert.equal(result.data.profiles[0].state.day,37);
+   assert.deepEqual(result.data.profiles[0].state.progress['dish-b'].done,{visited:true});
+   assert.equal(result.data.profiles[0].state.progress['dish-b'].note,'keep');
+   assert.equal(result.data.profiles[0].state.plannerSteps['omega:ai'],true);
+   assert.equal(result.data.profiles[1].name,'Основное прохождение');
+   assert.equal(saveProfiles(result.data),true);
+   assert.deepEqual(loadProfiles().data,result.data);
+  }
+ } finally { Reflect.deleteProperty(globalThis,'localStorage'); }
 });

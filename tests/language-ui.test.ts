@@ -22,7 +22,7 @@ test('English is the default; the language preference persists separately from a
   assert.match(document.title, /Field Journal/);
   assert.ok(view.getByRole('heading', {name:'ACHIEVEMENTS'}));
   assert.ok(view.getByText('Reach day 31 in Story.'));
-  assert.equal((view.getByRole('combobox', {name:'Profile for guides and advancements'}) as HTMLSelectElement).selectedOptions[0].textContent, 'Main playthrough');
+  assert.equal((view.getByRole('combobox', {name:'Profile for guides and advancements'}) as HTMLSelectElement).selectedOptions[0].textContent, 'Default');
   assert.equal(view.queryByText(/English translation is in progress/), null);
   fireEvent.click(view.getByRole('checkbox', {name:/Obtained: Sandbox unlocked/}));
   await waitFor(() => assert.equal(JSON.parse(dom.window.localStorage.getItem(ACHIEVEMENTS_KEY)!).marks.sandbox, true));

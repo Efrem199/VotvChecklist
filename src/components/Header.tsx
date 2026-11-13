@@ -70,11 +70,8 @@ export default function Header({ day, onDay, sound, onToggleSound, stats, onExpo
               {en ? "servers" : "серверов"} <span className="font-bold text-amber-glow">{stats.servers}/{stats.dishes}</span>
             </span>
           </div>
-          <div className="mt-2 font-mono text-sm tracking-[0.1em] text-phos-500" aria-hidden>
-            <span className="text-phos-700">[</span>
-            <span className="text-phos-400 glow">{"█".repeat(filled)}</span>
-            <span className="text-ink-500">{"░".repeat(bars - filled)}</span>
-            <span className="text-phos-700">]</span>
+          <div className="mt-2 flex max-w-96 gap-0.5" aria-hidden>
+            {Array.from({ length: bars }, (_, i) => <span key={i} className={cn("h-2 min-w-0 flex-1", i < filled ? "bg-phos-400" : "bg-ink-500")} />)}
           </div>
         </div>
 

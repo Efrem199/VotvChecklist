@@ -11,11 +11,11 @@ and find coordinates and instructions without leaving the site.
 
 </div>
 
-![Interactive array map and route controls](assets/readme/journal.png)
+<p align="center"><img src="assets/readme/journal.png" alt="Interactive array map and route controls"></p>
 
 > **Unofficial project.** Data and guides are summarized from the community wiki and may be incomplete or differ from your game version. Checkmarks on this site do not automatically synchronize with the game.
 >
-> **Languages:** English is the default, and the language selector also offers Russian. Built-in locations, rituals and all 91 available achievement guides (including detail sections and image captions) have English translations. User-created names, notes, edited columns and existing event history remain as entered. Some wiki links do not have a verified Russian counterpart; original sources are retained and labeled, and Russian counterparts may describe different versions.
+> **Languages:** English is the default, and the language selector also offers Russian. Built-in locations, rituals and all 91 available achievement guides (including detail sections and image captions) have English translations. The original profile is named `Default`; its previous built-in names are migrated automatically. Other profile names, notes, edited columns and existing event history remain as entered. Some wiki links do not have a verified Russian counterpart; original sources are retained and labeled, and Russian counterparts may describe different versions.
 
 <a id="features"></a>
 ## Features
@@ -57,12 +57,16 @@ A reference for the in-game terminal, Funny rule, Sandbox and Easter eggs, with 
 <a id="screenshots"></a>
 ## Screenshots
 
-| Kerfur-Omega guide in a location card | Achievement and step checkmarks |
-| :---: | :---: |
-| [![Kerfur-Omega guide in the Alpha Hideout card](assets/readme/kerfur-guide.png)](assets/readme/kerfur-guide.png) | [![Maid achievement guide with a checked step](assets/readme/achievements.png)](assets/readme/achievements.png) |
-| Guide excerpt with manual checkmarks | Steps, warnings and links to illustrations |
+<table align="center">
+  <tr><th>Kerfur-Omega guide in a location card</th><th>Achievement and step checkmarks</th></tr>
+  <tr>
+    <td align="center"><a href="assets/readme/kerfur-guide.png"><img src="assets/readme/kerfur-guide.png" alt="Kerfur-Omega guide in the Alpha Hideout card" width="400"></a></td>
+    <td align="center"><a href="assets/readme/achievements.png"><img src="assets/readme/achievements.png" alt="Maid achievement guide with a checked step" width="400"></a></td>
+  </tr>
+  <tr><td align="center">Guide excerpt with manual checkmarks</td><td align="center">Steps, warnings and links to illustrations</td></tr>
+</table>
 
-[Save editor screenshot](assets/readme/save-editor.png)
+<p align="center"><a href="assets/readme/save-editor.png">Save editor screenshot</a></p>
 
 Screenshots were taken in a browser using a demonstration profile; the save editor screenshot uses a synthetic example file, not a real save. The Kerfur-Omega image is an excerpt of the guide. Screenshots of guides show the fallback when wiki images are unavailable: links to the file pages remain visible. Loading the images themselves requires a connection to the wiki.
 
@@ -102,6 +106,8 @@ npm run typecheck  # TypeScript checks
 npm run build      # type checks and production build
 npm run preview    # preview the production build
 ```
+
+Mobile layout checks run in a real Chrome/Chromium browser at several viewport widths in both languages. Install Chrome or Chromium locally and run `npm run test:mobile`; if it is not in a standard Linux location, set `CHROMIUM_PATH` to its executable.
 
 ### Build and GitHub Pages
 

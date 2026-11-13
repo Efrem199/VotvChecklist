@@ -139,7 +139,7 @@ export default function LocationRow({
             <div className="flex flex-wrap items-baseline gap-x-2">
               <span
                 className={cn(
-                  "truncate text-sm font-semibold",
+                  "break-words text-sm font-semibold",
                   status === "done" ? "text-phos-300 glow" : status === "partial" ? "text-phos-200" : "text-phos-200/90",
                 )}
               >
@@ -155,7 +155,7 @@ export default function LocationRow({
             </div>
             {loc.desc && <p className="mt-0.5 text-xs leading-snug text-phos-500">{loc.desc}</p>}
             {ls.note && !showNote && (
-              <p className="mt-1 truncate text-xs italic text-amber-glow/80">✎ {ls.note}</p>
+              <p className="mt-1 break-words text-xs italic text-amber-glow/80">✎ {ls.note}</p>
             )}
           </div>
         </button>
