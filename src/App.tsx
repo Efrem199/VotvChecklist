@@ -29,9 +29,18 @@ import AchievementsPage from "@/components/AchievementsPage";
 import SaveEditorPage from "@/components/SaveEditorPage";
 import { loadAchievementMarks, saveAchievementMarks } from "@/lib/achievements";
 import { parseRoute } from "@/lib/routes";
-
+import { LanguageProvider, useLanguage } from "@/lib/language";
+import { englishCategory } from "@/data/en/categories";
+import { englishLocation } from "@/data/en/locations";
+import { displayTask } from "@/data/en/tasks";
 
 export default function App() {
+  return <LanguageProvider><AppBody /></LanguageProvider>;
+}
+
+function AppBody() {
+  const { language } = useLanguage();
+  const en = language === 'en';
   const [navigation, setNavigation] = useState(() => ({ hash: window.location.hash, id: 0 }));
   const hash = navigation.hash;
   const route = parseRoute(hash);
@@ -44,7 +53,7 @@ export default function App() {
   const [globalMarks, setGlobalMarks] = useState(globalLoaded.marks);
   const [globalSaveFailed, setGlobalSaveFailed] = useState(false);
   useEffect(() => { if (!globalLoaded.error) setGlobalSaveFailed(!saveAchievementMarks(globalMarks)); }, [globalLoaded.error, globalMarks]);
-  const [loaded] = useState(() => loadProfiles());
+  const [loaded] = useState(() => loadProfiles(language));
   const [profiles, setProfiles] = useState(loaded.data);
   const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
   const state = activeProfile.state;
@@ -82,8 +91,8 @@ export default function App() {
   }, []);
 
   const allLocations = useMemo<Location[]>(
-    () => [...BUILTIN_LOCATIONS, ...state.custom.map(customToLocation)],
-    [state.custom],
+    () => [...(en ? BUILTIN_LOCATIONS.map(englishLocation) : BUILTIN_LOCATIONS), ...state.custom.map(customToLocation)],
+    [state.custom, en],
   );
   const byId = useMemo(() => new Map(allLocations.map((l) => [l.id, l])), [allLocations]);
 
@@ -162,7 +171,7 @@ export default function App() {
       log: pushLog(state.log, {
         t: Date.now(),
         day: state.day,
-        text: `${loc.name} — ${task?.label ?? key} ${nextVal ? "✓" : "✗"}`,
+        text: `${loc.name} — ${task ? displayTask(task, loc.category, language) : key} ${nextVal ? "✓" : "✗"}`,
         ok: nextVal,
       }),
     };
@@ -215,7 +224,7 @@ export default function App() {
     setState((s) => ({
       ...s,
       custom: [...s.custom, { id, ...c }],
-      log: pushLog(s.log, { t: Date.now(), day: s.day, text: `Добавлена точка «${c.name}»`, ok: true }),
+      log: pushLog(s.log, { t: Date.now(), day: s.day, text: en ? `Added location “${c.name}”` : `Добавлена точка «${c.name}»`, ok: true }),
     }));
     if (state.sound) tick();
   };
@@ -223,7 +232,7 @@ export default function App() {
   const removeCustom = (id: string) => {
     const loc = byId.get(id);
     if (!loc) return;
-    if (!window.confirm(`Удалить точку «${loc.name}»?`)) return;
+    if (!window.confirm(en ? `Remove location “${loc.name}”?` : `Удалить точку «${loc.name}»?`)) return;
     setState((s) => {
       const progress = { ...s.progress };
       delete progress[id];
@@ -267,7 +276,7 @@ export default function App() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showToast("Журнал выгружен в JSON");
+    showToast(en ? "Journal exported to JSON" : "Журнал выгружен в JSON");
   };
 
   const importJson = async (file: File) => {
@@ -275,43 +284,43 @@ export default function App() {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
       const next = parseImport(parsed);
-      if (!window.confirm("Заменить текущий журнал, планировщик и отметки advancements данными из файла?")) return;
+      if (!window.confirm(en ? "Replace the current journal, guide checklists and advancement marks with data from this file?" : "Заменить текущий журнал, планировщик и отметки advancements данными из файла?")) return;
       setState(next);
-      showToast(`Журнал загружен · день ${next.day}`);
+      showToast(en ? `Journal loaded · day ${next.day}` : `Журнал загружен · день ${next.day}`);
     } catch {
-      showToast("Не удалось прочитать файл — это точно наш JSON?");
+      showToast(en ? "Could not read the file — is it a journal JSON?" : "Не удалось прочитать файл — это точно наш JSON?");
     }
   };
 
   const resetAll = () => {
-    if (!window.confirm("Снять отметки журнала и планировщика и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
+    if (!window.confirm(en ? "Clear journal and guide marks and notes? Custom locations, column settings and achievement marks will remain." : "Снять отметки журнала и планировщика и очистить заметки? Свои точки, настройки колонок и отметки достижений останутся.")) return;
     setState((s) => ({ ...defaultState(), day: s.day, sound: s.sound, custom: s.custom, tasks: s.tasks, showSecrets: s.showSecrets, advancements: s.advancements }));
     setSelectedId(null);
-    showToast("Журнал очищен. Новый обход.");
+    showToast(en ? "Journal cleared. Starting a new round." : "Журнал очищен. Новый обход.");
   };
 
   const switchProfile = (id: string) => {
     setProfiles(p => ({ ...p, activeId: id })); setSelectedId(null); setHoverId(null); setRouteIds([]); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
   };
   const createProfile = () => {
-    const name = window.prompt("Название нового прохождения:")?.trim();
+    const name = window.prompt(en ? "New profile name:" : "Название нового прохождения:")?.trim();
     if (!name) return;
     const id = uid("profile");
     setProfiles(p => ({ ...p, activeId: id, profiles: [...p.profiles, { id, name: name.slice(0, 80), createdAt: Date.now(), state: defaultState() }] }));
     setSelectedId(null); setHoverId(null); setRouteIds([]); setQuery(""); setCollection("all"); setOnlyMissing(false); setOnlyUnfinished(false); setDismissBackup(false);
   };
   const renameProfile = () => {
-    const name = window.prompt("Новое название прохождения:", activeProfile.name)?.trim();
+    const name = window.prompt(en ? "New profile name:" : "Новое название прохождения:", activeProfile.name)?.trim();
     if (name) setProfiles(p => ({ ...p, profiles: p.profiles.map(x => x.id === p.activeId ? { ...x, name: name.slice(0, 80) } : x) }));
   };
   const deleteProfile = () => {
     if (profiles.profiles.length <= 1) return;
-    if (!window.confirm(`Удалить прохождение «${activeProfile.name}» со всеми отметками? Действие необратимо. Сначала экспортируйте резервную копию.`)) return;
+    if (!window.confirm(en ? `Delete profile “${activeProfile.name}” and all its marks? This cannot be undone. Export a backup first.` : `Удалить прохождение «${activeProfile.name}» со всеми отметками? Действие необратимо. Сначала экспортируйте резервную копию.`)) return;
     setProfiles(p => { const remaining = p.profiles.filter(x => x.id !== p.activeId); return { ...p, profiles: remaining, activeId: remaining[0].id }; });
     setSelectedId(null); setHoverId(null); setDismissBackup(false);
   };
   const chooseCollection = (id: CollectionId) => {
-    if (id !== "all" && !state.showSecrets && !window.confirm("Показать спойлерные находки и карту?")) return;
+    if (id !== "all" && !state.showSecrets && !window.confirm(en ? "Show spoiler finds and the map?" : "Показать спойлерные находки и карту?")) return;
     if (id !== "all" && !state.showSecrets) revealSecrets();
     setCollection(id);
     if (id === "all") setOnlyMissing(false);
@@ -355,6 +364,7 @@ export default function App() {
   });
   const creepy = now.getHours() === 3 && now.getMinutes() === 33;
   const selected = selectedId ? byId.get(selectedId) : undefined;
+  const collectionNames = { all: "All locations", sandwiches: "Sandwiches", argemias: "Argemias", skulls: "Skulls", tiles: "Tiles", tools: "Tools" } as const;
   const nearby = selected && typeof selected.x === "number" && typeof selected.y === "number"
     ? allLocations.filter(l => l.id !== selected.id && (state.showSecrets || l.category !== "secrets") && typeof l.x === "number" && typeof l.y === "number")
       .map(l => ({ loc: l, distance: Math.hypot(l.x! - selected.x!, l.y! - selected.y!) })).sort((a,b) => a.distance - b.distance).slice(0, 5) : [];
@@ -386,27 +396,27 @@ export default function App() {
           onReset={resetAll}
         />
 
-        <section className="panel mt-4 flex flex-wrap items-end gap-2 p-3" aria-label="Профили прохождений">
-          <label className="flex min-w-0 flex-col gap-1 text-xs text-phos-400">Профиль <select className="input-term w-full sm:w-auto" aria-label="Выбрать прохождение" value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-          <button type="button" className="btn-term" onClick={createProfile}>+ новое</button><button type="button" className="btn-term" onClick={renameProfile}>переименовать</button><button type="button" className="btn-term" disabled={profiles.profiles.length <= 1} onClick={deleteProfile}>удалить</button>
-          <span className="self-center text-xs text-phos-600">Экспорт и импорт относятся к выбранному профилю.</span>
+        <section className="panel mt-4 flex flex-wrap items-end gap-2 p-3" aria-label={en ? "Profiles" : "Профили прохождений"}>
+          <label className="flex min-w-0 flex-col gap-1 text-xs text-phos-400">{en ? "Profile" : "Профиль"} <select className="input-term w-full sm:w-auto" aria-label={en ? "Select profile" : "Выбрать прохождение"} value={profiles.activeId} onChange={e => switchProfile(e.target.value)}>{profiles.profiles.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <button type="button" className="btn-term" onClick={createProfile}>{en ? "+ new" : "+ новое"}</button><button type="button" className="btn-term" onClick={renameProfile}>{en ? "rename" : "переименовать"}</button><button type="button" className="btn-term" disabled={profiles.profiles.length <= 1} onClick={deleteProfile}>{en ? "delete" : "удалить"}</button>
+          <span className="self-center text-xs text-phos-600">{en ? "Export and import apply to the selected profile." : "Экспорт и импорт относятся к выбранному профилю."}</span>
         </section>
-        {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">Пора сохранить резервную копию этого прохождения. <button type="button" className="btn-term" onClick={exportJson}>Экспорт JSON</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>Напомнить позже</button></div>}
-        {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера.</div>}
-        {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
+        {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">{en ? "It is time to back up this profile. " : "Пора сохранить резервную копию этого прохождения. "}<button type="button" className="btn-term" onClick={exportJson}>{en ? "Export JSON" : "Экспорт JSON"}</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>{en ? "Remind me later" : "Напомнить позже"}</button></div>}
+        {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">{en ? "Could not read profiles; automatic saving is disabled to avoid overwriting data. Export the available journal and check browser storage." : "Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера."}</div>}
+        {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">{en ? "Could not save the journal in the browser. Download a backup with Export and check browser storage." : "Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища."}</div>}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
             <div className="panel corner relative p-4">
               <div className="mb-3 flex items-baseline justify-between gap-2">
-                <p className="panel-title">Схема массива</p>
+                <p className="panel-title">{en ? "Array map" : "Схема массива"}</p>
                 <p className="text-[10px] uppercase tracking-wider text-phos-700">
                   {selected ? (
                     <>
-                      цель: <span className="text-phos-400">{selected.name}</span>
+                      {en ? "target" : "цель"}: <span className="text-phos-400">{selected.name}</span>
                     </>
                   ) : (
-                    "клик по маркеру — переход к точке"
+                    en ? "click a marker to open its location" : "клик по маркеру — переход к точке"
                   )}
                 </p>
               </div>
@@ -424,7 +434,7 @@ export default function App() {
                 onRouteChange={setRouteIds}
               />
             </div>
-            {selected && nearby.length > 0 && <div className="panel corner p-4"><p className="panel-title">Рядом с «{selected.name}»</p><p className="mt-1 text-xs text-phos-600">По прямой на плоскости карты; высота и препятствия не учитываются.</p><ul className="mt-2 space-y-1">{nearby.map(({loc,distance}) => <li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => select(loc.id)}>{loc.name} · ≈{Math.round(distance)} м</button></li>)}</ul></div>}
+            {selected && nearby.length > 0 && <div className="panel corner p-4"><p className="panel-title">{en ? `Near “${selected.name}”` : `Рядом с «${selected.name}»`}</p><p className="mt-1 text-xs text-phos-600">{en ? "Straight-line map distance; elevation and obstacles are not considered." : "По прямой на плоскости карты; высота и препятствия не учитываются."}</p><ul className="mt-2 space-y-1">{nearby.map(({loc,distance}) => <li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => select(loc.id)}>{loc.name} · ≈{Math.round(distance)} {en ? "m" : "м"}</button></li>)}</ul></div>}
             <div className="panel corner relative p-4">
               <EventLog log={state.log} />
             </div>
@@ -436,16 +446,16 @@ export default function App() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="поиск: bravo, TR 2, колодец, заметка…"
+                  placeholder={en ? "search: bravo, TR 2, well, note…" : "поиск: bravo, TR 2, колодец, заметка…"}
                   className="input-term"
-                  aria-label="Поиск по точкам"
+                  aria-label={en ? "Search locations" : "Поиск по точкам"}
                 />
                 {query && (
                   <button
                     type="button"
                     onClick={() => setQuery("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-phos-600 hover:text-phos-300"
-                    aria-label="Очистить поиск"
+                    aria-label={en ? "Clear search" : "Очистить поиск"}
                   >
                     ×
                   </button>
@@ -457,45 +467,45 @@ export default function App() {
                 aria-pressed={onlyUnfinished}
                 className={cn("btn-term", onlyUnfinished && "border-amber-glow/70 text-amber-glow")}
               >
-                {onlyUnfinished ? "[■]" : "[ ]"} только незакрытые
+                {onlyUnfinished ? "[■]" : "[ ]"} {en ? "unfinished only" : "только незакрытые"}
               </button>
               <button type="button" onClick={toggleSecrets} aria-pressed={state.showSecrets} className={cn("btn-term", state.showSecrets && "border-alert/60 text-alert")}>
-                {state.showSecrets ? "[■]" : "[ ]"} спойлеры
+                {state.showSecrets ? "[■]" : "[ ]"} {en ? "spoilers" : "спойлеры"}
               </button>
               <div className="flex gap-1">
-                <button type="button" onClick={() => setAllCollapsed(false)} className="btn-term" title="Развернуть все категории">
-                  ▾ все
+                <button type="button" onClick={() => setAllCollapsed(false)} className="btn-term" title={en ? "Expand all categories" : "Развернуть все категории"}>
+                  ▾ {en ? "all" : "все"}
                 </button>
-                <button type="button" onClick={() => setAllCollapsed(true)} className="btn-term" title="Свернуть все категории">
-                  ▸ все
+                <button type="button" onClick={() => setAllCollapsed(true)} className="btn-term" title={en ? "Collapse all categories" : "Свернуть все категории"}>
+                  ▸ {en ? "all" : "все"}
                 </button>
               </div>
             </div>
 
-            <section className="panel corner p-3" aria-label="Коллекции">
-              <p className="panel-title">Коллекции</p>
-              <p className="mt-1 text-xs text-phos-600">Выберите коллекцию для фильтрации списка и карты. Числа — найдено / всего.</p>
+            <section className="panel corner p-3" aria-label={en ? "Collections" : "Коллекции"}>
+              <p className="panel-title">{en ? "Collections" : "Коллекции"}</p>
+              <p className="mt-1 text-xs text-phos-600">{en ? "Choose a collection to filter the list and map. Counts show found / total." : "Выберите коллекцию для фильтрации списка и карты. Числа — найдено / всего."}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className={cn("btn-term", collection === "all" && "border-phos-500 text-phos-200")} aria-pressed={collection === "all"} onClick={() => chooseCollection("all")}>Все точки</button>
+                <button type="button" className={cn("btn-term", collection === "all" && "border-phos-500 text-phos-200")} aria-pressed={collection === "all"} onClick={() => chooseCollection("all")}>{en ? "All locations" : "Все точки"}</button>
                 {COLLECTIONS.filter(c => c.id !== "all").map(c => {
                   const items = allLocations.filter(c.matches);
                   const found = items.filter(l => state.progress[l.id]?.done.found).length;
-                  return <button key={c.id} type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id} onClick={() => chooseCollection(c.id)}>{c.label} <span className="tabular-nums">{found}/{items.length}</span></button>;
+                  return <button key={c.id} type="button" className={cn("btn-term", collection === c.id && "border-phos-500 text-phos-200")} aria-pressed={collection === c.id} onClick={() => chooseCollection(c.id)}>{en ? collectionNames[c.id] : c.label} <span className="tabular-nums">{found}/{items.length}</span></button>;
                 })}
               </div>
               {collection !== "all" && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-phos-800/40 pt-3 text-xs">
-                <span className="text-phos-400">Выбрано: {COLLECTIONS.find(c => c.id === collection)?.label}</span>
+                <span className="text-phos-400">{en ? "Selected" : "Выбрано"}: {en ? collectionNames[collection] : COLLECTIONS.find(c => c.id === collection)?.label}</span>
                 <label className="flex cursor-pointer items-center gap-2 text-phos-200">
                   <input type="checkbox" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)} />
-                  Только ненайденные
+                  {en ? "Missing only" : "Только ненайденные"}
                 </label>
-                <span className="text-phos-600">Без отметки «Найдено»; остальные колонки не учитываются.</span>
+                <span className="text-phos-600">{en ? "Without a Found mark; other columns are not considered." : "Без отметки «Найдено»; остальные колонки не учитываются."}</span>
               </div>}
             </section>
-            <nav className="panel corner p-3" aria-label="Быстрый переход к категориям">
-              <p className="panel-title">Перейти к категории</p>
-              <div className="mt-2 flex flex-wrap gap-2">{CATEGORIES.map(cat => <button key={cat.id} type="button" className="btn-term" onClick={() => jumpToCategory(cat.id)}>{cat.title}</button>)}</div>
-              <p className="mt-2 text-xs text-phos-600">Переход сбрасывает фильтры списка; скрытые спойлеры останутся скрытыми.</p>
+            <nav className="panel corner p-3" aria-label={en ? "Jump to categories" : "Быстрый переход к категориям"}>
+              <p className="panel-title">{en ? "Jump to category" : "Перейти к категории"}</p>
+              <div className="mt-2 flex flex-wrap gap-2">{CATEGORIES.map(cat => <button key={cat.id} type="button" className="btn-term" onClick={() => jumpToCategory(cat.id)}>{en ? englishCategory(cat).title : cat.title}</button>)}</div>
+              <p className="mt-2 text-xs text-phos-600">{en ? "Jumping clears list filters; hidden spoilers stay hidden." : "Переход сбрасывает фильтры списка; скрытые спойлеры останутся скрытыми."}</p>
             </nav>
             {CATEGORIES.map((cat) => {
               const all = byCategory[cat.id];
@@ -503,7 +513,7 @@ export default function App() {
               return (
                 <CategorySection
                   key={cat.id}
-                  category={cat}
+                  category={en ? englishCategory(cat) : cat}
                   state={state}
                   all={all}
                   visible={visible}
@@ -532,11 +542,11 @@ export default function App() {
 
         <footer className="panel mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[10px] uppercase tracking-[0.2em] text-phos-600">
           <span>
-            сигнал:{" "}
-            {creepy ? <span className="glow-red text-alert">помехи</span> : <span className="text-phos-400">стабильный</span>}
+            {en ? "signal" : "сигнал"}:{" "}
+            {creepy ? <span className="glow-red text-alert">{en ? "interference" : "помехи"}</span> : <span className="text-phos-400">{en ? "stable" : "стабильный"}</span>}
           </span>
           <span className="flex items-center gap-2">
-            питание:
+            {en ? "power" : "питание"}:
             {trDots.map((d) => (
               <span key={d.id} className="flex items-center gap-1">
                 {d.id.toUpperCase()}
@@ -550,10 +560,10 @@ export default function App() {
             ))}
           </span>
           <span>
-            день <span className="text-phos-400">{String(state.day).padStart(2, "0")}</span>
+            {en ? "day" : "день"} <span className="text-phos-400">{String(state.day).padStart(2, "0")}</span>
           </span>
           <span className="ml-auto normal-case tracking-normal text-phos-700">
-            источники: <a className="underline" href="https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items" target="_blank" rel="noreferrer">Voices of the Void Wiki</a> · сведения могут зависеть от версии игры · сохраняется в браузере
+            {en ? "sources" : "источники"}: <a className="underline" href="https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items" target="_blank" rel="noreferrer">Voices of the Void Wiki{!en && " (англ.)"}</a> · {en ? "information may depend on the game version · saved in your browser" : "сведения могут зависеть от версии игры · сохраняется в браузере"}
           </span>
         </footer>
       </div>

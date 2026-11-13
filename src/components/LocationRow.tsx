@@ -3,10 +3,15 @@ import { cn } from "@/utils/cn";
 import type { Location, TaskDef, MarkerKind } from "@/data/locations";
 import type { LocState, LocProgress } from "@/lib/state";
 import { wikiImage } from "@/data/wikiImages";
+import { locationWikiLinks } from "@/data/locationLinks";
 import { ACHIEVEMENTS } from "@/data/achievements";
 import { RITUALS } from "@/data/rituals";
+import { ENGLISH_RITUALS } from "@/data/en/rituals";
 import { reviewFor } from "@/data/review";
+import { englishReview } from "@/data/en/review";
 import { acquisitionFor } from "@/data/acquisition";
+import { useLanguage } from "@/lib/language";
+import { displayTask } from "@/data/en/tasks";
 import OmegaGuide from "./OmegaGuide";
 import FishingGuide from "./FishingGuide";
 import PointGuideTask from "./PointGuideTask";
@@ -89,16 +94,18 @@ export default function LocationRow({
   onRitualStep,
   plannerSteps = {}, onGuideStep = () => {}, guideTarget = false, navigationId = 0, guideLocked = false,
 }: Props) {
+  const { language } = useLanguage();
   const [noteOpen, setNoteOpen] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => { if (selected) setDetailsOpen(true); }, [selected, selectionSerial]);
   const [imageFailed, setImageFailed] = useState(false);
   const image = wikiImage(loc.id);
-  const steps = RITUALS[loc.id];
+  const wikiLinks = locationWikiLinks(loc, language);
+  const steps = language === "en" ? ENGLISH_RITUALS[loc.id] : RITUALS[loc.id];
   const linkedAchievements = ACHIEVEMENTS.filter(a => a.locationId === loc.id);
-  const review = reviewFor(loc);
-  const acquisition = acquisitionFor(loc.id);
+  const review = language === "en" ? englishReview(loc.id, reviewFor(loc)) : reviewFor(loc);
+  const acquisition = acquisitionFor(loc.id, language);
   const status = progress.complete ? "done" : progress.started ? "partial" : "none";
   const hasCoords = typeof loc.x === "number" && typeof loc.y === "number";
   const showNote = noteOpen || detailsOpen;
@@ -123,8 +130,8 @@ export default function LocationRow({
             setDetailsOpen(v => !v);
           }}
           className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-phos-500"
-          title={detailsOpen ? "Свернуть карточку" : "Открыть карточку и показать на карте"}
-          aria-label={`Карточка: ${loc.name}`}
+          title={detailsOpen ? (language === "en" ? "Collapse card" : "Свернуть карточку") : (language === "en" ? "Open card and show on map" : "Открыть карточку и показать на карте")}
+          aria-label={`${language === "en" ? "Card" : "Карточка"}: ${loc.name}`}
           aria-expanded={detailsOpen}
         >
           <Glyph kind={loc.kind} code={loc.code} status={status} />
@@ -144,7 +151,7 @@ export default function LocationRow({
                   X:{loc.x} Y:{loc.y}
                 </span>
               )}
-              {progress.complete && <span className="text-[10px] uppercase tracking-[0.2em] text-phos-500">✓ закрыто</span>}
+              {progress.complete && <span className="text-[10px] uppercase tracking-[0.2em] text-phos-500">✓ {language === "en" ? "complete" : "закрыто"}</span>}
             </div>
             {loc.desc && <p className="mt-0.5 text-xs leading-snug text-phos-500">{loc.desc}</p>}
             {ls.note && !showNote && (
@@ -153,18 +160,18 @@ export default function LocationRow({
           </div>
         </button>
 
-        {loc.source && <a href={loc.source} target="_blank" rel="noreferrer" className="text-xs text-phos-500 underline" aria-label={`Источник: ${loc.name}`}>вики ↗</a>}
+        {wikiLinks.map(link => <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="text-xs text-phos-500 underline">{link.label}</a>)}
         <div className="flex flex-wrap items-center gap-1.5">
           {tasks.map((t) => (
             <TaskChip
               key={t.key}
-              label={t.label}
+              label={displayTask(t, loc.category, language)}
               checked={Boolean(ls.done[t.key])}
               tone={toneFor(t.key)}
               onToggle={() => onToggle(t.key)}
             />
           ))}
-          <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`Подробности: ${loc.name}`}>{detailsOpen ? "ℹ свернуть" : "ℹ подробно"}</button>
+          <button type="button" className="btn-term" onClick={() => setDetailsOpen(v => !v)} aria-expanded={detailsOpen} aria-label={`${language === "en" ? "Details" : "Подробности"}: ${loc.name}`}>{detailsOpen ? (language === "en" ? "ℹ collapse" : "ℹ свернуть") : (language === "en" ? "ℹ details" : "ℹ подробно")}</button>
           <button
             type="button"
             onClick={() => { if (detailsOpen) noteRef.current?.focus(); else setNoteOpen(v => !v); }}
@@ -175,8 +182,8 @@ export default function LocationRow({
                 : "border-ink-600 text-phos-700 hover:border-phos-700 hover:text-phos-500",
               showNote && "bg-ink-800",
             )}
-            title="Заметка"
-            aria-label={`Заметка: ${loc.name}`}
+            title={language === "en" ? "Note" : "Заметка"}
+            aria-label={`${language === "en" ? "Note" : "Заметка"}: ${loc.name}`}
             aria-expanded={showNote}
           >
             ✎
@@ -186,15 +193,15 @@ export default function LocationRow({
               type="button"
               onClick={onRemove}
               className="border border-ink-600 px-2 py-1 text-[11px] text-phos-700 transition hover:border-alert/60 hover:text-alert"
-              title="Удалить точку"
-              aria-label={`Удалить точку: ${loc.name}`}
+              title={language === "en" ? "Remove location" : "Удалить точку"}
+              aria-label={`${language === "en" ? "Remove location" : "Удалить точку"}: ${loc.name}`}
             >
               ×
             </button>
           )}
           {typeof ls.day === "number" && (
-            <span className="ml-1 text-[10px] uppercase tracking-wider text-phos-700" title="День последней отметки">
-              д.{String(ls.day).padStart(2, "0")}
+            <span className="ml-1 text-[10px] uppercase tracking-wider text-phos-700" title={language === "en" ? "Day of last mark" : "День последней отметки"}>
+              {language === "en" ? "d." : "д."}{String(ls.day).padStart(2, "0")}
             </span>
           )}
         </div>
@@ -203,38 +210,38 @@ export default function LocationRow({
       {detailsOpen && (
         <div className="border-t border-phos-800/40 bg-ink-950/60 p-4 text-sm text-phos-200">
           <h3 className="font-bold text-phos-300">{loc.name}</h3>
-          {hasCoords ? <p className="mt-1 tabular-nums text-phos-500">X: {loc.x} · Y: {loc.y}</p> : <p className="mt-1 text-phos-600">Точные координаты не указаны.</p>}
+          {hasCoords ? <p className="mt-1 tabular-nums text-phos-500">X: {loc.x} · Y: {loc.y}</p> : <p className="mt-1 text-phos-600">{language === "en" ? "Exact coordinates are not specified." : "Точные координаты не указаны."}</p>}
           {loc.desc && <p className="mt-2">{loc.desc}</p>}
-          {acquisition?.requirements && <div className="mt-3 border-l-2 border-cam pl-3"><p className="font-bold text-cam">Условия и подготовка</p><p className="mt-1">{acquisition.requirements}</p></div>}
-          {acquisition?.warning && <div className="mt-3 border border-amber-glow/60 bg-amber-950/30 p-3 text-amber-glow"><p className="font-bold">⚠ Важно перед получением</p><p className="mt-1">{acquisition.warning}</p></div>}
-          {loc.id === "hideout" && <OmegaGuide target={guideTarget} navigationId={navigationId} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
-          {loc.id === "s-fishing" && <FishingGuide marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
+          {acquisition?.requirements && <div className="mt-3 border-l-2 border-cam pl-3"><p className="font-bold text-cam">{language === "en" ? "Requirements and preparation" : "Условия и подготовка"}</p><p className="mt-1">{acquisition.requirements}</p></div>}
+          {acquisition?.warning && <div className="mt-3 border border-amber-glow/60 bg-amber-950/30 p-3 text-amber-glow"><p className="font-bold">⚠ {language === "en" ? "Important before obtaining" : "Важно перед получением"}</p><p className="mt-1">{acquisition.warning}</p></div>}
+          {loc.id === "hideout" && <OmegaGuide language={language} target={guideTarget} navigationId={navigationId} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
+          {loc.id === "s-fishing" && <FishingGuide language={language} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
           <PointGuideTask locationId={loc.id} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>
-          {linkedAchievements.length > 0 && <details className="mt-3 text-xs"><summary className="cursor-pointer text-phos-400">Связанные достижения · возможны спойлеры</summary><ul className="mt-2 space-y-1">{linkedAchievements.map(a => <li key={a.id}><a className="text-phos-400 underline" href={`#/achievements?item=${encodeURIComponent(a.id)}`}>{a.title} ↗</a></li>)}</ul></details>}
-          <section aria-label={`Достоверность: ${loc.name}`} className="mt-4 border border-ink-600 p-3 text-xs">
-            <h4 className="font-bold text-phos-300">Источник и достоверность</h4>
-            <p className="mt-1">{review.status === 'wiki-reviewed' ? 'Сверено с текстом вики (не проверено в игре)' : review.status === 'disputed' ? '⚠ Данные различаются или требуют уточнения' : review.status === 'user' ? 'Пользовательская точка — данные вики не применяются' : 'Не сверено в рамках этой проверки'}</p>
-            {review.scope && <p className="mt-1 text-phos-500">Что сверено: {review.scope}.</p>}
-            {review.checkedAt && <p className="mt-1 text-phos-500">Сверка источников: {review.checkedAt.split('-').reverse().join('.')}.</p>}
-            {review.status !== 'user' && <p className="mt-1 text-phos-500">Версия игры: {review.gameVersion ?? 'не установлена; совместимость с вашей версией не подтверждена'}.</p>}
+          {linkedAchievements.length > 0 && <details className="mt-3 text-xs"><summary className="cursor-pointer text-phos-400">{language === "en" ? "Related achievements · possible spoilers" : "Связанные достижения · возможны спойлеры"}</summary><ul className="mt-2 space-y-1">{linkedAchievements.map(a => <li key={a.id}><a className="text-phos-400 underline" href={`#/achievements?item=${encodeURIComponent(a.id)}`}>{a.title} ↗</a></li>)}</ul></details>}
+          <section aria-label={`${language === "en" ? "Reliability" : "Достоверность"}: ${loc.name}`} className="mt-4 border border-ink-600 p-3 text-xs">
+            <h4 className="font-bold text-phos-300">{language === "en" ? "Source and reliability" : "Источник и достоверность"}</h4>
+            <p className="mt-1">{review.status === 'wiki-reviewed' ? (language === 'en' ? 'Checked against wiki text (not tested in-game)' : 'Сверено с текстом вики (не проверено в игре)') : review.status === 'disputed' ? (language === 'en' ? '⚠ Sources differ or need clarification' : '⚠ Данные различаются или требуют уточнения') : review.status === 'user' ? (language === 'en' ? 'Custom location — wiki information does not apply' : 'Пользовательская точка — данные вики не применяются') : (language === 'en' ? 'Not checked as part of this review' : 'Не сверено в рамках этой проверки')}</p>
+            {review.scope && <p className="mt-1 text-phos-500">{language === "en" ? "Checked scope:" : "Что сверено:"} {review.scope}.</p>}
+            {review.checkedAt && <p className="mt-1 text-phos-500">{language === "en" ? "Sources checked:" : "Сверка источников:"} {review.checkedAt.split('-').reverse().join('.')}.</p>}
+            {review.status !== 'user' && <p className="mt-1 text-phos-500">{language === 'en' ? 'Game version:' : 'Версия игры:'} {review.gameVersion ?? (language === 'en' ? 'unknown; compatibility with your version is not confirmed' : 'не установлена; совместимость с вашей версией не подтверждена')}.</p>}
             {review.note && <p className="mt-2 text-amber-glow">{review.note}</p>}
-            {review.sources && <ul className="mt-2 space-y-1">{review.sources.map(source => <li key={source.url}><a className="text-phos-400 underline" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a></li>)}</ul>}
+            {review.sources && <ul className="mt-2 space-y-1">{review.sources.map(source => <li key={source.url}><a className="text-phos-400 underline" href={source.url} target="_blank" rel="noreferrer">{source.label}{language === "ru" && source.url.includes("voicesofthevoid.wiki.gg/wiki/") ? " (англ.)" : ""} ↗</a></li>)}</ul>}
           </section>
-          {image && <div className="mt-3"><p className="mb-2 text-xs text-phos-600">Изображение загружается с Voices of the Void Wiki и может содержать спойлеры.</p>{!imageFailed ? <a href={image.file} target="_blank" rel="noreferrer"><img src={image.url} alt={`Расположение: ${loc.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className="max-h-72 max-w-full border border-phos-700 object-contain" /></a> : <p className="text-xs text-amber-glow">Не удалось загрузить изображение; <a href={image.file} target="_blank" rel="noreferrer" className="underline">открыть файл на вики</a>.</p>}<a href={image.file} target="_blank" rel="noreferrer" className="text-xs text-phos-400 underline">Страница файла и права ↗</a></div>}
-          {steps && <fieldset className="mt-4"><legend className="text-phos-300">Шаги ритуала</legend><p className="text-xs text-phos-600">Отметки шагов независимы от отметки «Найдено».</p><ol className="mt-2 space-y-2">{steps.map((step, i) => { const key = `${loc.id}:${i}`; return <li key={key}><label className="flex cursor-pointer gap-2"><input type="checkbox" checked={Boolean(ritualSteps[key])} onChange={e => onRitualStep(key, e.target.checked)} /><span>{step}</span></label></li>; })}</ol></fieldset>}
-          {loc.source && <p className="mt-3"><a className="text-phos-400 underline" href={loc.source} target="_blank" rel="noreferrer">Описание на вики ↗</a></p>}
-          <div className="mt-3 flex flex-wrap gap-2">{tasks.map(t=><TaskChip key={t.key} label={t.label} checked={Boolean(ls.done[t.key])} tone={toneFor(t.key)} onToggle={()=>onToggle(t.key)} />)}</div>
+          {image && <div className="mt-3"><p className="mb-2 text-xs text-phos-600">{language === "en" ? "Image is loaded from Voices of the Void Wiki and may contain spoilers." : "Изображение загружается с Voices of the Void Wiki и может содержать спойлеры."}</p>{!imageFailed ? <a href={image.file} target="_blank" rel="noreferrer"><img src={image.url} alt={`${language === "en" ? "Location" : "Расположение"}: ${loc.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className="max-h-72 max-w-full border border-phos-700 object-contain" /></a> : <p className="text-xs text-amber-glow">{language === "en" ? "Could not load image; " : "Не удалось загрузить изображение; "}<a href={image.file} target="_blank" rel="noreferrer" className="underline">{language === "en" ? "open the file on the wiki" : "открыть файл на вики"}</a>.</p>}<a href={image.file} target="_blank" rel="noreferrer" className="text-xs text-phos-400 underline">{language === "en" ? "File page and rights ↗" : "Страница файла и права ↗"}</a></div>}
+          {steps && <fieldset className="mt-4"><legend className="text-phos-300">{language === "en" ? "Ritual steps" : "Шаги ритуала"}</legend><p className="text-xs text-phos-600">{language === "en" ? "Step marks are independent of the Found mark." : "Отметки шагов независимы от отметки «Найдено»."}</p><ol className="mt-2 space-y-2">{steps.map((step, i) => { const key = `${loc.id}:${i}`; return <li key={key}><label className="flex cursor-pointer gap-2"><input type="checkbox" checked={Boolean(ritualSteps[key])} onChange={e => onRitualStep(key, e.target.checked)} /><span>{step}</span></label></li>; })}</ol></fieldset>}
+          {wikiLinks.length > 0 && <p className="mt-3 flex flex-wrap gap-3">{wikiLinks.map(link => <a key={link.url} className="text-phos-400 underline" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">{tasks.map(t=><TaskChip key={t.key} label={displayTask(t, loc.category, language)} checked={Boolean(ls.done[t.key])} tone={toneFor(t.key)} onToggle={()=>onToggle(t.key)} />)}</div>
         </div>
       )}
       {showNote && (
         <div className="animate-rise px-3 pb-3 pl-14">
           <label className="block text-xs text-phos-600">
-          Заметка
+          {language === "en" ? "Note" : "Заметка"}
           <textarea
             ref={noteRef}
             value={ls.note}
             onChange={(e) => onNote(e.target.value)}
-            placeholder="Заметка: что оставил, что сломано, куда смотрит камера…"
+            placeholder={language === "en" ? "Note: what you left, what is broken, where the camera points…" : "Заметка: что оставил, что сломано, куда смотрит камера…"}
             rows={2}
             className="input-term resize-y text-xs"
             autoFocus={noteOpen && !detailsOpen}

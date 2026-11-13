@@ -4,6 +4,8 @@ import { DEFAULT_TASKS, type Category, type Location, type TaskDef } from "@/dat
 import { EMPTY_LOC, progressFor, type AppState } from "@/lib/state";
 import LocationRow from "./LocationRow";
 import { toneFor } from "./TaskChip";
+import { useLanguage } from "@/lib/language";
+import { displayTask } from "@/data/en/tasks";
 
 interface Props {
   category: Category;
@@ -55,6 +57,8 @@ export default function CategorySection({
   onRevealSecrets,
   children,
 }: Props) {
+  const { language } = useLanguage();
+  const en = language === "en";
   const [editing, setEditing] = useState(false);
   const [newTask, setNewTask] = useState("");
   const collapsed = Boolean(state.collapsed[category.id]);
@@ -94,7 +98,7 @@ export default function CategorySection({
   };
   const removeTask = (i: number) => {
     if (tasks.length <= 1) return;
-    if (!window.confirm("Удалить колонку? Её отметки сохранятся и восстановятся при возврате стандартной колонки.")) return;
+    if (!window.confirm(en ? "Remove this column? Its marks remain saved and will return if the default column is restored." : "Удалить колонку? Её отметки сохранятся и восстановятся при возврате стандартной колонки.")) return;
     onSetTasks(tasks.filter((_, idx) => idx !== i));
   };
   const addTask = () => {
@@ -126,7 +130,7 @@ export default function CategorySection({
               </span>
               {category.spoiler && (
                 <span className="border border-alert/40 px-1 text-[9px] font-normal uppercase tracking-widest text-alert/80">
-                  спойлеры
+                  {en ? "spoilers" : "спойлеры"}
                 </span>
               )}
             </h2>
@@ -136,8 +140,8 @@ export default function CategorySection({
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider">
           {tasks.map((t) => (
-            <span key={t.key} className={cn("tabular-nums", TONE_TEXT[toneFor(t.key)])} title={t.label}>
-              {t.label}: {stats.perTask[t.key] ?? 0}/{all.length}
+            <span key={t.key} className={cn("tabular-nums", TONE_TEXT[toneFor(t.key)])} title={displayTask(t, category.id, language)}>
+              {displayTask(t, category.id, language)}: {stats.perTask[t.key] ?? 0}/{all.length}
             </span>
           ))}
         </div>
@@ -150,32 +154,33 @@ export default function CategorySection({
             type="button"
             onClick={() => setEditing((v) => !v)}
             className={cn("btn-term", editing && "border-phos-600 text-phos-300")}
-            title="Настроить колонки категории"
+            title={en ? "Configure category columns" : "Настроить колонки категории"}
             aria-expanded={editing}
           >
-            ⚙ колонки
+            ⚙ {en ? "columns" : "колонки"}
           </button>
         </div>
       </header>
 
       {editing && (
         <div className="animate-rise border-b border-phos-800/40 bg-ink-950/50 px-4 py-3">
-          <p className="panel-title mb-2">Колонки «{category.title}»</p>
+          <p className="panel-title mb-2">{en ? `Columns: ${category.title}` : `Колонки «${category.title}»`}</p>
+          {en && <p className="mb-2 text-xs text-phos-600">Default column names are translated. Edited and custom names are kept as entered when you switch languages.</p>}
           <div className="flex flex-wrap gap-2">
             {tasks.map((t, i) => (
               <div key={t.key} className="flex items-center gap-1">
                 <input
-                  value={t.label}
+                  value={displayTask(t, category.id, language)}
                   onChange={(e) => renameTask(i, e.target.value)}
                   className="input-term w-40 text-xs"
-                  aria-label={`Название колонки ${i + 1}`}
+                  aria-label={en ? `Column ${i + 1} name` : `Название колонки ${i + 1}`}
                 />
                 <button
                   type="button"
                   onClick={() => removeTask(i)}
                   disabled={tasks.length <= 1}
                   className="btn-term px-2 hover:border-alert/60 hover:text-alert"
-                  title="Удалить колонку (отметки в ней сохранятся скрытыми)"
+                  title={en ? "Remove column (its marks remain saved)" : "Удалить колонку (отметки в ней сохранятся скрытыми)"}
                 >
                   ×
                 </button>
@@ -187,14 +192,14 @@ export default function CategorySection({
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTask()}
-              placeholder="Новая колонка, напр. «Щит»"
+              placeholder={en ? "New column, e.g. Shield" : "Новая колонка, напр. «Щит»"}
               className="input-term w-56 text-xs"
             />
             <button type="button" onClick={addTask} className="btn-term" disabled={!newTask.trim()}>
-              + добавить
+              + {en ? "add" : "добавить"}
             </button>
             <button type="button" onClick={resetTasks} className="btn-term">
-              ⟲ по умолчанию
+              ⟲ {en ? "restore defaults" : "по умолчанию"}
             </button>
           </div>
         </div>
@@ -204,16 +209,16 @@ export default function CategorySection({
         <div className="relative">
           {masked ? (
             <div className="flex flex-wrap items-center gap-3 px-4 py-4">
-              <p className="text-xs text-phos-600">Список тайников скрыт, чтобы не показывать спойлеры.</p>
+              <p className="text-xs text-phos-600">{en ? "Hidden items are concealed to avoid spoilers." : "Список тайников скрыт, чтобы не показывать спойлеры."}</p>
               <button type="button" onClick={onRevealSecrets} className="btn-term border-alert/50 px-4 py-2 text-alert hover:border-alert hover:text-alert">
-                ▣ показать спойлеры
+                ▣ {en ? "show spoilers" : "показать спойлеры"}
               </button>
             </div>
           ) : (
             <div>
               {visible.length === 0 && (
                 <p className="px-4 py-6 text-center text-xs uppercase tracking-widest text-phos-700">
-                  {all.length === 0 ? "— пусто —" : "— ничего не найдено по фильтру —"}
+                  {all.length === 0 ? (en ? "— empty —" : "— пусто —") : (en ? "— no results for this filter —" : "— ничего не найдено по фильтру —")}
                 </p>
               )}
               {groups.map((g) => (

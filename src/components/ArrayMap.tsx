@@ -1,9 +1,11 @@
+import { displayTask } from "@/data/en/tasks";
 import { useMemo, useRef, useState } from "react";
 import { routeDistance, routeSupplies } from "@/lib/routePlanner";
 import { clusterPoints } from "@/lib/mapClusters";
 import { cn } from "@/utils/cn";
 import { CANDLE_RADIUS, FENCE, MAP_EXTENT, UPGRADE_KEYS, type Location, type MarkerKind } from "@/data/locations";
 import { EMPTY_LOC, progressFor, tasksFor, type AppState } from "@/lib/state";
+import { useLanguage } from "@/lib/language";
 
 export type MapMode = "overall" | "visited" | "camera" | "upgrades";
 
@@ -96,6 +98,8 @@ interface Props {
 }
 
 export default function ArrayMap({ state, locations, mode, onModeChange, selectedId, hoverId, onSelect, onHover, routePoints, routeIds, onRouteChange }: Props) {
+  const { language } = useLanguage();
+  const en = language === 'en';
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState({ x: 0, y: 0 });
   const [openCluster, setOpenCluster] = useState<string | null>(null);
@@ -133,12 +137,12 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
     if (!active) return null;
     const tasks = tasksFor(state, active.loc.category);
     const ls = state.progress[active.loc.id] ?? EMPTY_LOC;
-    const done = tasks.filter((t) => ls.done[t.key]).map((t) => t.label);
+    const done = tasks.filter((t) => ls.done[t.key]).map((t) => displayTask(t, active.loc.category, language));
     const l = ((active.px - center.x + radius) / (2 * radius)) * 100;
     const t = ((active.py - center.y + radius) / (2 * radius)) * 100;
     if (l < 0 || l > 100 || t < 0 || t > 100) return null;
     return { l, t, done, below: t < 18, loc: active.loc, ls };
-  }, [active, state, center, radius]);
+  }, [active, state, center, radius, language]);
 
   const gridLines: number[] = [];
   for (let v = -FENCE; v <= FENCE; v += 100) gridLines.push(v);
@@ -147,39 +151,39 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Режим карты">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={en ? "Map mode" : "Режим карты"}>
         {MAP_MODES.map((m) => (
           <button
             key={m.id}
             type="button"
             aria-pressed={mode === m.id}
             onClick={() => onModeChange(m.id)}
-            title={m.hint}
+            title={en ? ({overall:"Overall progress", visited:"Visited locations", camera:"Camera locations", upgrades:"Servers, upgrades, fuses"} as const)[m.id] : m.hint}
             className={cn(
               "btn-term",
               mode === m.id && "border-phos-500 bg-phos-900/50 text-phos-300 shadow-[0_0_10px_rgba(108,255,92,0.2)]",
             )}
           >
-            {m.label}
+            {en ? ({overall:"All", visited:"Visited", camera:"Cameras", upgrades:"Upgrades"} as const)[m.id] : m.label}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1" aria-label="Управление картой">
-        <button type="button" className="btn-term" onClick={() => changeZoom(zoom * 2)} disabled={zoom >= 4} aria-label="Приблизить карту">＋</button>
-        <button type="button" className="btn-term" onClick={() => changeZoom(zoom / 2)} disabled={zoom <= 1} aria-label="Отдалить карту">−</button>
-        <button type="button" className="btn-term" onClick={() => pan(-radius/2,0)} disabled={zoom <= 1} aria-label="Сдвинуть карту влево">←</button><button type="button" className="btn-term" onClick={() => pan(0,-radius/2)} disabled={zoom <= 1} aria-label="Сдвинуть карту вверх">↑</button><button type="button" className="btn-term" onClick={() => pan(0,radius/2)} disabled={zoom <= 1} aria-label="Сдвинуть карту вниз">↓</button><button type="button" className="btn-term" onClick={() => pan(radius/2,0)} disabled={zoom <= 1} aria-label="Сдвинуть карту вправо">→</button>
-        <button type="button" className="btn-term" onClick={() => { setZoom(1); setCenter({x:0,y:0}); setOpenCluster(null); }}>сброс · {zoom}×</button>
+      <div className="flex flex-wrap items-center gap-1" aria-label={en ? "Map controls" : "Управление картой"}>
+        <button type="button" className="btn-term" onClick={() => changeZoom(zoom * 2)} disabled={zoom >= 4} aria-label={en ? "Zoom in" : "Приблизить карту"}>＋</button>
+        <button type="button" className="btn-term" onClick={() => changeZoom(zoom / 2)} disabled={zoom <= 1} aria-label={en ? "Zoom out" : "Отдалить карту"}>−</button>
+        <button type="button" className="btn-term" onClick={() => pan(-radius/2,0)} disabled={zoom <= 1} aria-label={en ? "Pan left" : "Сдвинуть карту влево"}>←</button><button type="button" className="btn-term" onClick={() => pan(0,-radius/2)} disabled={zoom <= 1} aria-label={en ? "Pan up" : "Сдвинуть карту вверх"}>↑</button><button type="button" className="btn-term" onClick={() => pan(0,radius/2)} disabled={zoom <= 1} aria-label={en ? "Pan down" : "Сдвинуть карту вниз"}>↓</button><button type="button" className="btn-term" onClick={() => pan(radius/2,0)} disabled={zoom <= 1} aria-label={en ? "Pan right" : "Сдвинуть карту вправо"}>→</button>
+        <button type="button" className="btn-term" onClick={() => { setZoom(1); setCenter({x:0,y:0}); setOpenCluster(null); }}>{en ? "reset" : "сброс"} · {zoom}×</button>
       </div>
-      <p className="text-xs text-phos-600">Приблизьте и перетащите карту. Число на маркере — группа точек; нажмите, чтобы выбрать.</p>
+      <p className="text-xs text-phos-600">{en ? "Zoom and drag the map. A number marks a group of locations; click to choose one." : "Приблизьте и перетащите карту. Число на маркере — группа точек; нажмите, чтобы выбрать."}</p>
       <div className="border border-ink-600 p-3">
-        <h3 className="text-sm text-phos-300">Маршрут по точкам</h3>
-        <p className="mt-1 text-xs text-phos-600">Выберите видимые точки в нужном порядке; фильтры и спойлеры влияют на список.</p>
-        <div className="mt-2 flex flex-wrap gap-2"><select aria-label="Добавить точку маршрута" className="input-term min-w-0 flex-1" value="" onChange={e => { if (e.target.value) onRouteChange([...routeIds, e.target.value]); }}><option value="">Добавить точку…</option>{locations.filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && !routeIds.includes(l.id)).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select><button type="button" className="btn-term" disabled={!routeIds.length} onClick={() => onRouteChange([])}>Очистить</button></div>
-        <ol className="mt-2 space-y-1">{routeIds.map((id,i) => { const loc = locations.find(l=>l.id===id); return <li key={id} className="flex items-center gap-2 text-xs text-phos-400"><span className="flex-1">{i+1}. {loc?.name ?? 'Точка скрыта фильтром'}</span><button type="button" className="btn-term" onClick={() => onRouteChange(routeIds.filter(x=>x!==id))} aria-label={`Убрать ${loc?.name ?? 'точку'} из маршрута`}>×</button></li>; })}</ol>
-        {routePoints.length >= 2 && routePoints.length === routeIds.length && <p className="mt-2 text-sm text-phos-300">≈{Math.round(routeDistance(routePoints))} м по прямым отрезкам. Рельеф и препятствия не учитываются; некоторые маркеры сдвинуты для читаемости, линия использует реальные координаты.</p>}
-        {routePoints.length !== routeIds.length && <p className="mt-2 text-xs text-amber-glow">Некоторые точки скрыты фильтром: маршрут не рассчитан.</p>}
-        {routePoints.length > 0 && <ul className="mt-2 list-inside list-disc text-xs text-phos-400">{routeSupplies(routePoints).map(item=><li key={item}>{item}</li>)}</ul>}
+        <h3 className="text-sm text-phos-300">{en ? "Location route" : "Маршрут по точкам"}</h3>
+        <p className="mt-1 text-xs text-phos-600">{en ? "Choose visible locations in order; filters and spoilers affect the list." : "Выберите видимые точки в нужном порядке; фильтры и спойлеры влияют на список."}</p>
+        <div className="mt-2 flex flex-wrap gap-2"><select aria-label={en ? "Add route location" : "Добавить точку маршрута"} className="input-term min-w-0 flex-1" value="" onChange={e => { if (e.target.value) onRouteChange([...routeIds, e.target.value]); }}><option value="">{en ? "Add a location…" : "Добавить точку…"}</option>{locations.filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && !routeIds.includes(l.id)).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select><button type="button" className="btn-term" disabled={!routeIds.length} onClick={() => onRouteChange([])}>{en ? "Clear" : "Очистить"}</button></div>
+        <ol className="mt-2 space-y-1">{routeIds.map((id,i) => { const loc = locations.find(l=>l.id===id); return <li key={id} className="flex items-center gap-2 text-xs text-phos-400"><span className="flex-1">{i+1}. {loc?.name ?? (en ? 'Location hidden by filter' : 'Точка скрыта фильтром')}</span><button type="button" className="btn-term" onClick={() => onRouteChange(routeIds.filter(x=>x!==id))} aria-label={en ? `Remove ${loc?.name ?? "location"} from route` : `Убрать ${loc?.name ?? "точку"} из маршрута`}>×</button></li>; })}</ol>
+        {routePoints.length >= 2 && routePoints.length === routeIds.length && <p className="mt-2 text-sm text-phos-300">≈{Math.round(routeDistance(routePoints))} {en ? "m along straight segments. Terrain and obstacles are not considered; some markers are shifted for readability, but the route uses actual coordinates." : "м по прямым отрезкам. Рельеф и препятствия не учитываются; некоторые маркеры сдвинуты для читаемости, линия использует реальные координаты."}</p>}
+        {routePoints.length !== routeIds.length && <p className="mt-2 text-xs text-amber-glow">{en ? "Some locations are hidden by filters: route not calculated." : "Некоторые точки скрыты фильтром: маршрут не рассчитан."}</p>}
+        {routePoints.length > 0 && <ul className="mt-2 list-inside list-disc text-xs text-phos-400">{routeSupplies(routePoints, language).map(item=><li key={item}>{item}</li>)}</ul>}
       </div>
       <div className="relative select-none" onMouseLeave={() => onHover(null)}>
         <svg
@@ -189,7 +193,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
           onPointerMove={e => { if (!drag.current) return; const box=e.currentTarget.getBoundingClientRect(); setCenter({x:clampCenter(drag.current.cx-(e.clientX-drag.current.x)*2*radius/box.width),y:clampCenter(drag.current.cy-(e.clientY-drag.current.y)*2*radius/box.height)}); }}
           onPointerUp={() => { drag.current=null; }} onPointerCancel={() => { drag.current=null; }}
           role="group"
-          aria-label="Схема массива Dunkeltaler Forest"
+          aria-label={en ? "Dunkeltaler Forest array map" : "Схема массива Dunkeltaler Forest"}
         >
           <defs>
             <radialGradient id="mapbg" cx="50%" cy="50%" r="70%">
@@ -294,13 +298,13 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
             <line x1={-E + 140} y1={E - 54} x2={-E + 140} y2={E - 34} />
           </g>
           <text x={-E + 90} y={E - 60} fill="#3fd93a" fontSize={24} textAnchor="middle" fontFamily="inherit" opacity={0.8}>
-            100 м
+            100 {en ? "m" : "м"}
           </text>
 
           {/* markers */}
           {clusters.map(cluster => {
             const { items, px, py } = cluster;
-            if (items.length > 1) return <g key={cluster.key} data-marker="cluster" className="cursor-pointer map-marker" role="button" tabIndex={0} aria-label={`Группа: ${items.length} точек`} transform={`translate(${px} ${py})`} onClick={() => setOpenCluster(cluster.key)} onKeyDown={e => { if(e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenCluster(cluster.key); } }}><circle r={32 / zoom} fill="#17351c" stroke="#6cff5c" strokeWidth={3 / zoom} /><text textAnchor="middle" dominantBaseline="central" fontSize={25 / zoom} fill="#e9ffe6">{items.length}</text></g>;
+            if (items.length > 1) return <g key={cluster.key} data-marker="cluster" className="cursor-pointer map-marker" role="button" tabIndex={0} aria-label={en ? `Group: ${items.length} locations` : `Группа: ${items.length} точек`} transform={`translate(${px} ${py})`} onClick={() => setOpenCluster(cluster.key)} onKeyDown={e => { if(e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenCluster(cluster.key); } }}><circle r={32 / zoom} fill="#17351c" stroke="#6cff5c" strokeWidth={3 / zoom} /><text textAnchor="middle" dominantBaseline="central" fontSize={25 / zoom} fill="#e9ffe6">{items.length}</text></g>;
             const { loc, status } = items[0];
             const isActive = activeId === loc.id;
             const isSelected = selectedId === loc.id;
@@ -317,7 +321,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
                 className="cursor-pointer map-marker"
                 role="button"
                 tabIndex={0}
-                aria-label={`Показать точку ${loc.name}`}
+                aria-label={en ? `Show location ${loc.name}` : `Показать точку ${loc.name}`}
                 onFocus={() => onHover(loc.id)}
                 onBlur={() => onHover(null)}
                 onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(loc.id); } }}
@@ -367,7 +371,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
                 )}
                 {cam && (
                   <circle cx={loc.kind === "dish" ? 22 : 18} cy={loc.kind === "dish" ? -22 : -18} r={7} fill="#67e8f9" stroke="#050706" strokeWidth={2}>
-                    <title>Камера установлена</title>
+                    <title>{en ? "Camera installed" : "Камера установлена"}</title>
                   </circle>
                 )}
               </g>
@@ -376,7 +380,7 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
         </svg>
 
         {tooltip && (
-          <div
+          <div role="tooltip"
             className="pointer-events-none absolute z-20 w-max max-w-[240px] border border-phos-600/60 bg-ink-950/95 px-2.5 py-1.5 text-[11px] shadow-[0_0_18px_rgba(0,0,0,0.8)]"
             style={{
               left: `${tooltip.l}%`,
@@ -394,27 +398,27 @@ export default function ArrayMap({ state, locations, mode, onModeChange, selecte
               </div>
             )}
             <div className={cn("mt-0.5 uppercase tracking-wider", tooltip.done.length ? "text-phos-400" : "text-phos-700")}>
-              {tooltip.done.length ? tooltip.done.join(" · ") : "— не отмечено"}
+              {tooltip.done.length ? tooltip.done.join(" · ") : (en ? "— not marked" : "— не отмечено")}
             </div>
             {tooltip.ls.note && <div className="mt-0.5 italic text-amber-glow/90">✎ {tooltip.ls.note}</div>}
           </div>
         )}
       </div>
 
-      {opened && <div className="border border-phos-700 p-3"><div className="flex justify-between gap-2"><p className="text-xs text-phos-300">Точки в группе ({opened.items.length})</p><button type="button" className="btn-term" onClick={() => setOpenCluster(null)}>закрыть</button></div><ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">{opened.items.map(({loc})=><li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => { setOpenCluster(null); onSelect(loc.id); }}>{loc.name}{typeof loc.x === 'number' && ` · X:${loc.x} Y:${loc.y}`}</button></li>)}</ul></div>}
+      {opened && <div className="border border-phos-700 p-3"><div className="flex justify-between gap-2"><p className="text-xs text-phos-300">{en ? "Locations in group" : "Точки в группе"} ({opened.items.length})</p><button type="button" className="btn-term" onClick={() => setOpenCluster(null)}>{en ? "close" : "закрыть"}</button></div><ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">{opened.items.map(({loc})=><li key={loc.id}><button type="button" className="text-left text-xs text-phos-400 underline" onClick={() => { setOpenCluster(null); onSelect(loc.id); }}>{loc.name}{typeof loc.x === 'number' && ` · X:${loc.x} Y:${loc.y}`}</button></li>)}</ul></div>}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider text-phos-600">
-        <span>○ тарелка</span>
-        <span>□ трансформатор</span>
-        <span>△ радар</span>
-        <span>◇ точка</span>
-        <span>⊗ тайник</span>
-        <span>◉ своя</span>
+        <span>{en ? "○ dish" : "○ тарелка"}</span>
+        <span>{en ? "□ transformer" : "□ трансформатор"}</span>
+        <span>{en ? "△ radar" : "△ радар"}</span>
+        <span>{en ? "◇ location" : "◇ точка"}</span>
+        <span>{en ? "⊗ hidden item" : "⊗ тайник"}</span>
+        <span>{en ? "◉ custom" : "◉ своя"}</span>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider">
-        <span className="text-phos-700">▣ не был</span>
-        <span className="text-amber-glow">▣ частично</span>
-        <span className="text-phos-400">▣ готово</span>
-        <span className="text-cam">● камера</span>
+        <span className="text-phos-700">{en ? "▣ not visited" : "▣ не был"}</span>
+        <span className="text-amber-glow">{en ? "▣ partial" : "▣ частично"}</span>
+        <span className="text-phos-400">{en ? "▣ complete" : "▣ готово"}</span>
+        <span className="text-cam">{en ? "● camera" : "● камера"}</span>
       </div>
     </div>
   );

@@ -1,0 +1,7 @@
+export const ENGLISH_RITUALS: Record<string, string[]> = {
+ 'argemia-cyan': ['Collect 12 shrimp packs, each with at least one shrimp left.', 'Place the packs in the emergency shower basin in the base signal room.', 'Blow up the packs, for example with a Molotov, and take the plushie.'],
+ 'argemia-yellow': ['Place one shrimp pack at each of the four outer fence corners, including the corner inside the village.', 'Bring a fifth pack to the base basement and place it on the drain.', 'Between 00:00 and 01:00, move away from the drain, turn away and look slightly upward; take the plushie.'],
+ 'argemia-black': ['Collect seven human skulls and the Red, Green, Blue, Magenta, Yellow and Cyan Argemias.', 'In Story or Infinite mode, place the skulls in the center of Stonehenge and hook yourself to the ground at a safe distance.', 'After the sound cue, throw the six plushies from your inventory into the portal one at a time without releasing the hook. The plushies are consumed.', 'Wait for the portal to close and take the Black Argemia.'],
+ 'argemia-white': ['Collect the Red, Green, Blue, Magenta, Yellow and Cyan Argemias.', 'Arrange the six plushies in a hexagon with sides about five meters long; the Hole fence can be used as a guide.', 'Wait for them to merge and take the White Argemia. The six original plushies are consumed.'],
+ 'argemia-gold': ['Find and dig up a rare gold ingot using a metal detector.', 'Watch the ingot continuously for one real hour; pausing, losing sight of it or unstable FPS resets the timer.', 'Take the Gold Argemia.'],
+};

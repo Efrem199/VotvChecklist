@@ -1,3 +1,6 @@
+import { englishAcquisitionFor } from './en/acquisition';
+import type { WikiLanguage } from './wikiTranslations';
+
 /** Отдельные предупреждения и условия только там, где они подтверждены указанными страницами вики. */
 export interface Acquisition { requirements?: string; warning?: string }
 const details: Record<string, Acquisition> = {
@@ -23,7 +26,8 @@ const details: Record<string, Acquisition> = {
  'burger-buried': {requirements:'Лопата или грабли для раскопок.'},
  'skull-5': {warning:'Череп у входа в пещеру закреплён до взаимодействия через контекстное меню.'},
 };
-export function acquisitionFor(id: string): Acquisition | undefined {
+export function acquisitionFor(id: string, language: WikiLanguage = 'ru'): Acquisition | undefined {
+ if (language === 'en') return englishAcquisitionFor(id);
  if (details[id]) return details[id];
  if (['skull-1','skull-3','skull-4','skull-7'].includes(id)) return {warning:'По вики черепа над землёй могут разлететься от взрывов или других физических воздействий.'};
  return undefined;

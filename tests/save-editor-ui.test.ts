@@ -12,6 +12,7 @@ function example() {return Buffer.concat([Buffer.from('GVAS'),i(2),i(522),Buffer
 test('редактор загружает локальный файл, проверяет значения и требует подтверждения',async()=>{
  const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'https://example.com/#/save-editor'});
  Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Element:dom.window.Element,localStorage:dom.window.localStorage,requestAnimationFrame:(fn:()=>void)=>setTimeout(fn,0)});
+ dom.window.localStorage.setItem('votv-checklist-language', 'ru');
  dom.window.scrollTo=()=>{}; const out='.save-editor-test-bundle.mjs';
  try {
   await build({entryPoints:['src/App.tsx'],bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.jpg':'dataurl'},outfile:out,logLevel:'silent'});
@@ -32,6 +33,11 @@ test('редактор загружает локальный файл, пров�
   fireEvent.click(view.getByLabelText('Понимаю риск и хочу изменить флаги')); assert.equal(flag.disabled,false); fireEvent.click(flag);
   fireEvent.click(view.getByLabelText('Понимаю риск и хочу изменить флаги')); assert.equal(download.disabled,true);
   fireEvent.click(view.getByRole('button',{name:'Сбросить изменения'})); assert.equal(points.value,'123'); assert.equal(download.disabled,true);
+  fireEvent.change(view.getByRole('combobox',{name:'Язык'}),{target:{value:'en'}});
+  assert.ok(view.getByRole('heading',{name:'SAVE EDITOR'}));
+  assert.equal((view.getByLabelText('Points') as HTMLInputElement).value,'123');
+  assert.ok(view.getByText(/Close the game and back up both files/));
+  assert.equal((view.getByRole('button',{name:'Download edited file'}) as HTMLButtonElement).disabled,true);
   cleanup();
  } finally {await rm(out,{force:true});dom.window.close();}
 });

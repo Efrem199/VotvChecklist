@@ -1,5 +1,6 @@
 import { cn } from "@/utils/cn";
 import { UPGRADE_KEYS } from "@/data/locations";
+import { useLanguage } from "@/lib/language";
 
 export type Tone = "green" | "cyan" | "amber";
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function TaskChip({ label, checked, tone = "green", compact, onToggle }: Props) {
+  const { language } = useLanguage();
   return (
     <button
       type="button"
@@ -37,9 +39,9 @@ export default function TaskChip({ label, checked, tone = "green", compact, onTo
           : "border-ink-600 bg-ink-950/40 text-phos-700 hover:border-phos-700 hover:text-phos-500",
         compact && "px-1.5 py-0.5 text-[10px]",
       )}
-      title={checked ? `${label}: отмечено` : `${label}: не отмечено`}
+      title={`${label}: ${language === "en" ? (checked ? "marked" : "not marked") : (checked ? "отмечено" : "не отмечено")}`}
     >
-      <span className="font-bold tabular-nums">{checked ? "[■]" : "[ ]"}</span>
+      <span aria-hidden="true" className="font-bold tabular-nums">{checked ? "[■]" : "[ ]"}</span>
       <span>{label}</span>
     </button>
   );

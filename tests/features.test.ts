@@ -14,10 +14,13 @@ test('миграция старого журнала и раздельное х�
  values.set(STORAGE_KEY,JSON.stringify(old));
  const loaded = loadProfiles();
  assert.equal(loaded.error,false); assert.equal(loaded.data.profiles[0].state.day,21);
+ assert.equal(loadProfiles('en').data.profiles[0].name, 'Main playthrough');
+ assert.equal(loadProfiles('ru').data.profiles[0].name, 'Основное прохождение');
  const second = {id:'second',name:'Второй',createdAt:1,state:defaultState()};
  loaded.data.profiles.push(second); loaded.data.activeId='second';
  second.state.ritualSteps['argemia-white:0'] = true;
  assert.equal(saveProfiles(loaded.data),true);
+ assert.equal(loadProfiles('en').data.profiles[0].name,'Основное прохождение'); // Existing names are user data.
  const reloaded=loadProfiles().data;
  assert.equal(reloaded.activeId,'second'); assert.equal(reloaded.profiles[0].state.progress['dish-b'].note,'заметка');
  assert.equal(reloaded.profiles[1].state.ritualSteps['argemia-white:0'],true);
