@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { stripVTControlCharacters } from 'node:util';
 import { chromium } from 'playwright-core';
 
 const i = n => { const b = Buffer.alloc(4); b.writeInt32LE(n); return b; };
@@ -15,9 +16,14 @@ const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host
 let browser;
 try {
   await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start')), 30000);
-    server.stdout.on('data', data => { if (String(data).includes('Local:')) { clearTimeout(timer); resolve(); } });
-    server.once('exit', code => { clearTimeout(timer); reject(new Error(`Vite exited: ${code}`)); });
+    let output = '';
+    const timer = setTimeout(() => reject(new Error(`Vite did not start: ${stripVTControlCharacters(output)}`)), 30000);
+    server.stdout.on('data', data => {
+      output += data;
+      if (stripVTControlCharacters(output).includes('Local:')) { clearTimeout(timer); resolve(); }
+    });
+    server.stderr.on('data', data => { output += data; });
+    server.once('exit', code => { clearTimeout(timer); reject(new Error(`Vite exited (${code}): ${stripVTControlCharacters(output)}`)); });
   });
   browser = await chromium.launch({ executablePath: binary, headless: true, args: ['--no-sandbox', ...(process.env.CHROMIUM_SINGLE_PROCESS ? ['--no-zygote', '--single-process', '--disable-gpu'] : [])] });
   const page = await browser.newPage({ viewport: { width: 320, height: 850 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
