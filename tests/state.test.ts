@@ -64,7 +64,7 @@ test('ID не повторяются', () => {
 test('планировщик мигрирует и экспортируется вместе с профилем',()=>{
  const old=defaultState();
  assert.deepEqual(normalizeState({...old,plannerSteps:undefined}).plannerSteps,{});
- old.plannerSteps={'omega:blueprint':true,'fishing:craft':false};
+ old.plannerSteps={'omega:blueprint':true,'fishing:craft':false,'guide:maid:0':true};
  assert.deepEqual(parseImport(JSON.parse(serializeState(old))).plannerSteps,old.plannerSteps);
  assert.deepEqual(normalizeState({...old,plannerSteps:{bad:'yes',ok:true}}).plannerSteps,{ok:true});
 });

@@ -19,8 +19,6 @@ import { loadProfiles, saveProfiles } from "@/lib/profiles";
 import { COLLECTIONS, collectionMatches, type CollectionId } from "@/data/collections";
 import { blip, chime, tick } from "@/lib/sound";
 import Header, { type OverallStats } from "@/components/Header";
-import Planner from "@/components/Planner";
-import OmegaGuide from "@/components/OmegaGuide";
 import ArrayMap, { type MapMode } from "@/components/ArrayMap";
 import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
@@ -324,7 +322,8 @@ export default function App() {
   useEffect(() => {
     const target = parseRoute(hash);
     if (target.page !== 'journal') return;
-    if (target.location) select(target.location);
+    if (target.section === "kerfur-omega") select("hideout");
+    else if (target.location) select(target.location);
     else if (target.category && CATEGORIES.some(c => c.id === target.category)) jumpToCategory(target.category as CategoryId);
     else if (target.collection && COLLECTIONS.some(c => c.id === target.collection && c.id !== 'all')) {
       setCollection(target.collection as CollectionId);
@@ -363,7 +362,7 @@ export default function App() {
 
   if (route.page === 'save-editor') return <SaveEditorPage locations={allLocations} progress={state.progress} />;
   if (route.page === 'fun') return <FunPage key={hash} locations={allLocations} progress={state.progress} initialQuery={route.query} section={route.section} />;
-  if (route.page === 'achievements') return <AchievementsPage key={hash} locations={allLocations} progress={state.progress} item={route.item} globalMarks={globalMarks} globalError={globalLoaded.error} globalSaveFailed={globalSaveFailed} advancements={state.advancements} profileName={activeProfile.name} profiles={profiles.profiles} profileId={profiles.activeId} profileError={loaded.error} profileSaveFailed={saveFailed} onProfile={switchProfile} onMark={markAchievement} />;
+  if (route.page === 'achievements') return <AchievementsPage key={hash} locations={allLocations} progress={state.progress} item={route.item} globalMarks={globalMarks} globalError={globalLoaded.error} globalSaveFailed={globalSaveFailed} advancements={state.advancements} profileName={activeProfile.name} profiles={profiles.profiles} profileId={profiles.activeId} profileError={loaded.error} profileSaveFailed={saveFailed} onProfile={switchProfile} onMark={markAchievement} guideSteps={state.plannerSteps} onGuideStep={(id, checked) => setState(s => ({ ...s, plannerSteps: { ...s.plannerSteps, [id]: checked } }))} />;
 
   return (
     <div className="relative min-h-screen">
@@ -395,9 +394,6 @@ export default function App() {
         {backupDue && !dismissBackup && <div className="panel mt-4 flex flex-wrap items-center gap-3 p-3 text-xs text-amber-glow">Пора сохранить резервную копию этого прохождения. <button type="button" className="btn-term" onClick={exportJson}>Экспорт JSON</button><button type="button" className="btn-term" onClick={() => setDismissBackup(true)}>Напомнить позже</button></div>}
         {loaded.error && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось прочитать профили; автоматическая запись отключена, чтобы не перезаписать данные. Экспортируйте доступный журнал и проверьте хранилище браузера.</div>}
         {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
-
-        <Planner state={state} onStep={(id, checked) => setState(s => ({ ...s, plannerSteps: { ...s.plannerSteps, [id]: checked } }))} />
-        <OmegaGuide target={route.section === "kerfur-omega"} navigationId={navigation.id} />
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
@@ -518,6 +514,8 @@ export default function App() {
                   onToggleCollapse={() => toggleCollapse(cat.id)}
                   onToggleTask={toggleTask}
                   onNote={setNote}
+                  guideTarget={route.section === "kerfur-omega"} navigationId={navigation.id} guideLocked={loaded.error}
+                  onGuideStep={(id, checked) => setState(s => ({ ...s, plannerSteps: { ...s.plannerSteps, [id]: checked } }))}
                   onRitualStep={(key, value) => setState(s => ({ ...s, ritualSteps: { ...s.ritualSteps, [key]: value } }))}
                   onSelect={select}
                   onHover={setHoverId}

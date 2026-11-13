@@ -27,7 +27,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   entry('jackpot','Jackpot','Открыть полностью заполненный MRE; случайный результат.','50 очков.'),
   entry('ripped-off','Ripped off','Открыть MRE с одним крекером; случайный результат.','50 очков.'),
   entry('robbed','Robbed','Открыть пустой MRE; редкий случайный результат.','100 очков.'),
-  entry('charcoal-fish','Charcoal fish','Поймать рыбу Charborg; по вики возможно также создать её в Sandbox.','Шапка Charborg в магазине.'),
+  entry('charcoal-fish','Charcoal fish','Поймать рыбу Charborg; по вики возможно также создать её в Sandbox.','Шапка Charborg в магазине.',{locationId:'s-fishing'}),
   entry('suboptimal','Suboptimal','Приготовить живую рыбу, нагрев её до превращения в приготовленную.'),
   entry('treasure-hunter','Treasure hunter','Выкопать все возможные предметы с металлоискателем и лопатой.','Неизвестна по вики.'),
   entry('woo','WOO!','Пнуть накопитель в слот при включённом Kick props/trip over.','5 очков.'),
