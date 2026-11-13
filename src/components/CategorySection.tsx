@@ -18,6 +18,8 @@ interface Props {
   onToggleTask: (locId: string, key: string) => void;
   onNote: (locId: string, text: string) => void;
   onRitualStep: (key: string, value: boolean) => void;
+  onGuideStep: (key: string, value: boolean) => void;
+  guideTarget: boolean; navigationId: number; guideLocked: boolean;
   onSelect: (locId: string) => void;
   onHover: (locId: string | null) => void;
   onRemoveCustom?: (locId: string) => void;
@@ -45,6 +47,7 @@ export default function CategorySection({
   onToggleTask,
   onNote,
   onRitualStep,
+  onGuideStep, guideTarget, navigationId, guideLocked,
   onSelect,
   onHover,
   onRemoveCustom,
@@ -226,6 +229,11 @@ export default function CategorySection({
                       <LocationRow
                         key={loc.id}
                         loc={loc}
+                        plannerSteps={state.plannerSteps}
+                        onGuideStep={onGuideStep}
+                        guideTarget={guideTarget && loc.id === "hideout"}
+                        navigationId={navigationId}
+                        guideLocked={guideLocked}
                         ritualSteps={state.ritualSteps}
                         onRitualStep={onRitualStep}
                         tasks={tasks}

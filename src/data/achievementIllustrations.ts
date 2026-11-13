@@ -25,9 +25,12 @@ const runes: Images = {
 const dough = item('Item_DoughBall_Ingame_Transparent.png','Шар теста');
 export const STEP_ILLUSTRATIONS: Record<string, Images> = {
  'oven-repair':oven,
+ 'maid': {
+  'Включите Funny': [shot('Item_Shovel_Transformer2Location.png','Лопата на балке TR2',180)],
+  'У TR 3': [shot('Object_VaultClosed_Ingame.png','Закрытый сейф — вид предмета')],
+  'Чтобы открыть сейф': [shot('Object_VaultOpen_Ingame.png','Открытый сейф — результат')],
+ },
  'charcoal-fish': {
-  'Возьмите лопату': [shot('Item_Fishermans_treasure_Ingame_DiggedOut.png','Выкопанный клад рыбака',180)],
-  'Соберите удочку': [shot('Item_Workbench_Ingame_Transparent.png','Верстак — место сборки')],
   'У воды': [shot('Item_FishingRod_Ingame.png','Удочка — вид предмета')],
  },
  'red-crown':runes,

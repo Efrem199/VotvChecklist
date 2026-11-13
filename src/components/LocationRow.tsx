@@ -3,9 +3,13 @@ import { cn } from "@/utils/cn";
 import type { Location, TaskDef, MarkerKind } from "@/data/locations";
 import type { LocState, LocProgress } from "@/lib/state";
 import { wikiImage } from "@/data/wikiImages";
+import { ACHIEVEMENTS } from "@/data/achievements";
 import { RITUALS } from "@/data/rituals";
 import { reviewFor } from "@/data/review";
 import { acquisitionFor } from "@/data/acquisition";
+import OmegaGuide from "./OmegaGuide";
+import FishingGuide from "./FishingGuide";
+import PointGuideTask from "./PointGuideTask";
 import TaskChip, { toneFor } from "./TaskChip";
 
 interface Props {
@@ -21,6 +25,9 @@ interface Props {
   onSelect: () => void;
   onHover: (hover: boolean) => void;
   onRemove?: () => void;
+  plannerSteps?: Record<string, boolean>;
+  onGuideStep?: (key: string, value: boolean) => void;
+  guideTarget?: boolean; navigationId?: number; guideLocked?: boolean;
   ritualSteps: Record<string, boolean>;
   onRitualStep: (key: string, value: boolean) => void;
 }
@@ -80,6 +87,7 @@ export default function LocationRow({
   onRemove,
   ritualSteps,
   onRitualStep,
+  plannerSteps = {}, onGuideStep = () => {}, guideTarget = false, navigationId = 0, guideLocked = false,
 }: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
@@ -88,6 +96,7 @@ export default function LocationRow({
   const [imageFailed, setImageFailed] = useState(false);
   const image = wikiImage(loc.id);
   const steps = RITUALS[loc.id];
+  const linkedAchievements = ACHIEVEMENTS.filter(a => a.locationId === loc.id);
   const review = reviewFor(loc);
   const acquisition = acquisitionFor(loc.id);
   const status = progress.complete ? "done" : progress.started ? "partial" : "none";
@@ -198,6 +207,10 @@ export default function LocationRow({
           {loc.desc && <p className="mt-2">{loc.desc}</p>}
           {acquisition?.requirements && <div className="mt-3 border-l-2 border-cam pl-3"><p className="font-bold text-cam">Условия и подготовка</p><p className="mt-1">{acquisition.requirements}</p></div>}
           {acquisition?.warning && <div className="mt-3 border border-amber-glow/60 bg-amber-950/30 p-3 text-amber-glow"><p className="font-bold">⚠ Важно перед получением</p><p className="mt-1">{acquisition.warning}</p></div>}
+          {loc.id === "hideout" && <OmegaGuide target={guideTarget} navigationId={navigationId} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
+          {loc.id === "s-fishing" && <FishingGuide marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>}
+          <PointGuideTask locationId={loc.id} marks={plannerSteps} onStep={onGuideStep} disabled={guideLocked}/>
+          {linkedAchievements.length > 0 && <details className="mt-3 text-xs"><summary className="cursor-pointer text-phos-400">Связанные достижения · возможны спойлеры</summary><ul className="mt-2 space-y-1">{linkedAchievements.map(a => <li key={a.id}><a className="text-phos-400 underline" href={`#/achievements?item=${encodeURIComponent(a.id)}`}>{a.title} ↗</a></li>)}</ul></details>}
           <section aria-label={`Достоверность: ${loc.name}`} className="mt-4 border border-ink-600 p-3 text-xs">
             <h4 className="font-bold text-phos-300">Источник и достоверность</h4>
             <p className="mt-1">{review.status === 'wiki-reviewed' ? 'Сверено с текстом вики (не проверено в игре)' : review.status === 'disputed' ? '⚠ Данные различаются или требуют уточнения' : review.status === 'user' ? 'Пользовательская точка — данные вики не применяются' : 'Не сверено в рамках этой проверки'}</p>
