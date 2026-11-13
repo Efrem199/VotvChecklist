@@ -1,3 +1,4 @@
+export const OMEGA_GUIDE_HREF = "#/journal?section=kerfur-omega";
 export type Route = { page: 'journal' | 'fun' | 'achievements' | 'save-editor'; location?: string; collection?: string; item?: string; query?: string; category?: string; section?: string };
 export function parseRoute(hash: string): Route {
   const [path, params = ''] = hash.replace(/^#/, '').split('?');

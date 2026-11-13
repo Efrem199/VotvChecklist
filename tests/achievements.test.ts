@@ -46,9 +46,10 @@ test('маршруты работают с query и прямыми ссылка�
  assert.equal(parseRoute('#/').page,'journal');
 });
 
-test('для каждой записи есть гайд с шагами и корректными источниками', async () => {
+test('гайды достижений и ссылка Upgrade на единый гайд', async () => {
  const { ACHIEVEMENT_GUIDES } = await import('../src/data/achievementGuides');
- assert.deepEqual(Object.keys(ACHIEVEMENT_GUIDES).sort(), ACHIEVEMENTS.map(a => a.id).sort());
+ assert.deepEqual(Object.keys(ACHIEVEMENT_GUIDES).sort(), ACHIEVEMENTS.filter(a => a.id !== 'upgrade').map(a => a.id).sort());
+ assert.equal(ACHIEVEMENT_GUIDES.upgrade, undefined);
  for (const [id, guide] of Object.entries(ACHIEVEMENT_GUIDES)) {
   assert.ok(guide.steps.length > 0, id);
   assert.ok(guide.steps.every(step => step.trim().length > 0), id);
@@ -58,9 +59,10 @@ test('для каждой записи есть гайд с шагами и ко
 });
 
 test('расширенные гайды содержат рецепты, места и предупреждения', async () => {
- const { ACHIEVEMENT_DETAILS } = await import('../src/data/achievementDetails');
+ const { ACHIEVEMENT_DETAILS, OMEGA_GUIDE } = await import('../src/data/achievementDetails');
  for (const id of Object.keys(ACHIEVEMENT_DETAILS)) assert.ok(ACHIEVEMENTS.some(a => a.id === id), id);
- const omega = ACHIEVEMENT_DETAILS.upgrade;
+ const omega = OMEGA_GUIDE;
+ assert.equal(ACHIEVEMENT_DETAILS.upgrade, undefined);
  assert.ok(omega.every(section => section.spoiler));
  const text = omega.flatMap(section => section.items).join(' ');
  for (const expected of ['14 пластикового', '7 металлического', '8 электронного', '1 стеклянного', '8 Ball Joints', '4 Limb Joints', 'X:405.5', 'X:-570.0', 'Complete Manual', 'Две руки', 'Две ноги', '0.9.0']) assert.ok(text.includes(expected), expected);
@@ -74,9 +76,17 @@ test('расширенные гайды содержат рецепты, мес�
 });
 
 test('иллюстрации привязаны к существующим шагам и местам', async () => {
- const {STEP_ILLUSTRATIONS, SECTION_ILLUSTRATIONS, illustrationsFor, imageUrl} = await import('../src/data/achievementIllustrations');
+ const {STEP_ILLUSTRATIONS, SECTION_ILLUSTRATIONS, OMEGA_ILLUSTRATIONS, illustrationsFor, imageUrl} = await import('../src/data/achievementIllustrations');
  const {ACHIEVEMENT_GUIDES} = await import('../src/data/achievementGuides');
- const {ACHIEVEMENT_DETAILS} = await import('../src/data/achievementDetails');
+ const {ACHIEVEMENT_DETAILS, OMEGA_GUIDE} = await import('../src/data/achievementDetails');
+ for (const [title, mapping] of Object.entries(OMEGA_ILLUSTRATIONS)) {
+  const section=OMEGA_GUIDE.find(s=>s.title===title);
+  assert.ok(section, title);
+  for (const [prefix, images] of Object.entries(mapping)) {
+   assert.equal(section.items.filter(s=>s.startsWith(prefix)).length,1,`${title}: ${prefix}`);
+   assert.ok(images.length);
+  }
+ }
  for (const [id, mapping] of Object.entries(STEP_ILLUSTRATIONS)) {
   const steps = ACHIEVEMENT_GUIDES[id]?.steps;
   assert.ok(steps, id);

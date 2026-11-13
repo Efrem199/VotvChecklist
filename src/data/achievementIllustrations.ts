@@ -48,7 +48,7 @@ export const STEP_ILLUSTRATIONS: Record<string, Images> = {
   'Держа тесто': [item('Item_BakingTray_Ingame_Transparent.png','Противень')],
  },
 };
-const omega: Record<string, Images> = {
+export const OMEGA_ILLUSTRATIONS: Record<string, Images> = {
  'Руководство и вход в бункер': {
   'Alpha Hideout находится': [shot('Location_Bunker_Entrance.png','Вход в бункер Alpha Hideout')],
   'Вторую дверь откройте': [item('Item_KerfurOmegaDocumentsBinder_Ingame_Transparent.png','Папка с подсказками, не чертёж')],
@@ -96,7 +96,6 @@ const boss: Record<string, Images> = {
  },
 };
 export const SECTION_ILLUSTRATIONS: Record<string, Record<string, Images>> = {
- upgrade:omega,
  'super-burger':{'Все 21 сэндвич':burgers}, 'adv-burger':{'Все 21 сэндвич':burgers},
  portal:{'Все семь человеческих черепов':skulls},
  easter:{'Все 12 пасхальных яиц':eggImages},

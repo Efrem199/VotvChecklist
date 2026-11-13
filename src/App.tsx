@@ -20,6 +20,7 @@ import { COLLECTIONS, collectionMatches, type CollectionId } from "@/data/collec
 import { blip, chime, tick } from "@/lib/sound";
 import Header, { type OverallStats } from "@/components/Header";
 import Planner from "@/components/Planner";
+import OmegaGuide from "@/components/OmegaGuide";
 import ArrayMap, { type MapMode } from "@/components/ArrayMap";
 import CategorySection from "@/components/CategorySection";
 import EventLog from "@/components/EventLog";
@@ -396,6 +397,7 @@ export default function App() {
         {saveFailed && <div role="alert" className="panel mt-4 border-alert p-4 text-sm text-alert">Не удалось сохранить журнал в браузере. Скачайте резервную копию кнопкой «экспорт» и проверьте доступность хранилища.</div>}
 
         <Planner state={state} onStep={(id, checked) => setState(s => ({ ...s, plannerSteps: { ...s.plannerSteps, [id]: checked } }))} />
+        <OmegaGuide target={route.section === "kerfur-omega"} navigationId={navigation.id} />
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[440px_minmax(0,1fr)] xl:grid-cols-[500px_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
