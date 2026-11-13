@@ -116,7 +116,7 @@ export default function CategorySection({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none"
+          className="flex min-w-0 basis-full items-center gap-3 text-left focus-visible:outline-none"
           aria-expanded={!collapsed}
         >
           <span className="text-phos-500 transition-transform duration-200" style={{ transform: collapsed ? "rotate(-90deg)" : "none" }}>
@@ -138,7 +138,7 @@ export default function CategorySection({
           </div>
         </button>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider">
+        <div className="flex min-w-0 basis-full flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider">
           {tasks.map((t) => (
             <span key={t.key} className={cn("tabular-nums", TONE_TEXT[toneFor(t.key)])} title={displayTask(t, category.id, language)}>
               {displayTask(t, category.id, language)}: {stats.perTask[t.key] ?? 0}/{all.length}

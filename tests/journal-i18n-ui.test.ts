@@ -18,7 +18,7 @@ test('location search, custom data and progress survive switching languages', as
   const {default:App} = await import(pathToFileURL(process.cwd()+'/'+out).href);
   const {render, fireEvent, cleanup, within} = await import('@testing-library/react');
   const view = render(React.createElement(App));
-  assert.equal((view.getByRole('combobox',{name:'Select profile'}) as HTMLSelectElement).selectedOptions[0].textContent,'Main playthrough');
+  assert.equal((view.getByRole('combobox',{name:'Select profile'}) as HTMLSelectElement).selectedOptions[0].textContent,'Default');
   const power = document.getElementById('cat-power')!;
   fireEvent.click(within(power).getByRole('button',{name:'⚙ columns'}));
   const column = within(power).getByRole('textbox',{name:'Column 1 name'}) as HTMLInputElement;

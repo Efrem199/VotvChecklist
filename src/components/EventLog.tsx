@@ -24,7 +24,7 @@ export default function EventLog({ log }: { log: LogEntry[] }) {
               <span className="shrink-0 tabular-nums text-phos-700">
                 [{en ? 'd.' : 'д.'}{String(e.day).padStart(2, "0")} {fmt(e.t)}]
               </span>
-              <span className={cn("min-w-0 truncate", !e.ok && "text-phos-700 line-through decoration-phos-800")}>{e.text}</span>
+              <span className={cn("min-w-0 break-words", !e.ok && "text-phos-700 line-through decoration-phos-800")}>{e.text}</span>
             </li>
           ))}
         </ul>

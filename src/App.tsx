@@ -53,7 +53,7 @@ function AppBody() {
   const [globalMarks, setGlobalMarks] = useState(globalLoaded.marks);
   const [globalSaveFailed, setGlobalSaveFailed] = useState(false);
   useEffect(() => { if (!globalLoaded.error) setGlobalSaveFailed(!saveAchievementMarks(globalMarks)); }, [globalLoaded.error, globalMarks]);
-  const [loaded] = useState(() => loadProfiles(language));
+  const [loaded] = useState(() => loadProfiles());
   const [profiles, setProfiles] = useState(loaded.data);
   const activeProfile = profiles.profiles.find(p => p.id === profiles.activeId)!;
   const state = activeProfile.state;

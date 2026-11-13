@@ -32,7 +32,7 @@ export default function TaskChip({ label, checked, tone = "green", compact, onTo
       aria-pressed={checked}
       onClick={onToggle}
       className={cn(
-        "group/chip inline-flex select-none items-center gap-1.5 border px-2 py-1 text-[11px] uppercase tracking-wider transition-all duration-150",
+        "group/chip inline-flex min-h-11 max-w-full select-none items-center gap-1.5 border sm:min-h-0 px-2 py-1 text-[11px] uppercase tracking-wider transition-all duration-150",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-phos-400",
         checked
           ? TONE_ON[tone]
