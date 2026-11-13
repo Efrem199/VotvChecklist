@@ -3,13 +3,13 @@ export const PROFILES_KEY = 'votv-patrol-log:profiles:v1';
 export interface Profile { id: string; name: string; createdAt: number; state: AppState }
 export interface Profiles { version: 1; activeId: string; profiles: Profile[] }
 
-export function initialProfiles(state: AppState = defaultState()): Profiles {
-  return { version: 1, activeId: 'default', profiles: [{ id: 'default', name: 'Основное прохождение', createdAt: Date.now(), state }] };
+export function initialProfiles(state: AppState = defaultState(), language: 'en' | 'ru' = 'ru'): Profiles {
+  return { version: 1, activeId: 'default', profiles: [{ id: 'default', name: language === 'en' ? 'Main playthrough' : 'Основное прохождение', createdAt: Date.now(), state }] };
 }
-export function loadProfiles(): { data: Profiles; error: boolean } {
+export function loadProfiles(language: 'en' | 'ru' = 'ru'): { data: Profiles; error: boolean } {
   try {
     const raw = localStorage.getItem(PROFILES_KEY);
-    if (!raw) return { data: initialProfiles(loadState()), error: false };
+    if (!raw) return { data: initialProfiles(loadState(), language), error: false };
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') throw new Error('Некорректные профили');
     const p = parsed as Partial<Profiles>;
@@ -22,7 +22,7 @@ export function loadProfiles(): { data: Profiles; error: boolean } {
     });
     if (!ids.has(p.activeId)) throw new Error('Профиль не найден');
     return { data: { version: 1, activeId: p.activeId, profiles }, error: false };
-  } catch { return { data: initialProfiles(loadState()), error: true }; }
+  } catch { return { data: initialProfiles(loadState(), language), error: true }; }
 }
 export function saveProfiles(profiles: Profiles): boolean {
   try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); return true; } catch { return false; }

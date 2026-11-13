@@ -11,6 +11,7 @@ import { PROFILES_KEY } from '../src/lib/profiles';
 test('достижения, профили, спойлеры, глобальный поиск и переходы по сайту', async () => {
  const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'https://example.com/#/achievements'});
  Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Element:dom.window.Element,localStorage:dom.window.localStorage,requestAnimationFrame:(fn:()=>void)=>setTimeout(fn,0)});
+ dom.window.localStorage.setItem('votv-checklist-language', 'ru');
  dom.window.requestAnimationFrame=(fn)=>setTimeout(fn,0) as unknown as number;
  dom.window.scrollTo=()=>{}; dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
  dom.window.confirm=()=>true; dom.window.prompt=()=> 'Другой профиль';

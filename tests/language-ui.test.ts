@@ -1,0 +1,53 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
+import { build } from 'esbuild';
+import { rm } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import React from 'react';
+import { LANGUAGE_KEY } from '../src/lib/language';
+import { ACHIEVEMENTS_KEY } from '../src/lib/achievements';
+
+test('English is the default; the language preference persists separately from achievement progress', async () => {
+ const dom = new JSDOM('<!doctype html><html><head><meta name="description" content=""></head><body></body></html>', { url:'https://example.com/#/achievements' });
+ Object.assign(globalThis, { window:dom.window, document:dom.window.document, HTMLElement:dom.window.HTMLElement, Element:dom.window.Element, localStorage:dom.window.localStorage });
+ dom.window.scrollTo = () => {};
+ const out = '.language-test-bundle.mjs';
+ try {
+  await build({entryPoints:['src/App.tsx'], bundle:true, platform:'node', format:'esm', packages:'external', loader:{'.jpg':'dataurl'}, outfile:out, logLevel:'silent'});
+  const {default:App} = await import(pathToFileURL(process.cwd()+'/'+out).href);
+  const {render, fireEvent, cleanup, waitFor} = await import('@testing-library/react');
+  const view = render(React.createElement(App));
+  assert.equal(document.documentElement.lang, 'en');
+  assert.match(document.title, /Field Journal/);
+  assert.ok(view.getByRole('heading', {name:'ACHIEVEMENTS'}));
+  assert.ok(view.getByText('Reach day 31 in Story.'));
+  assert.equal((view.getByRole('combobox', {name:'Profile for guides and advancements'}) as HTMLSelectElement).selectedOptions[0].textContent, 'Main playthrough');
+  assert.equal(view.queryByText(/English translation is in progress/), null);
+  fireEvent.click(view.getByRole('checkbox', {name:/Obtained: Sandbox unlocked/}));
+  await waitFor(() => assert.equal(JSON.parse(dom.window.localStorage.getItem(ACHIEVEMENTS_KEY)!).marks.sandbox, true));
+  fireEvent.change(view.getByRole('combobox', {name:'Language'}), {target:{value:'ru'}});
+  assert.equal(document.documentElement.lang, 'ru');
+  assert.equal(dom.window.localStorage.getItem(LANGUAGE_KEY), 'ru');
+  assert.ok(view.getByRole('heading', {name:'ДОСТИЖЕНИЯ'}));
+  assert.ok((view.getByRole('checkbox', {name:/Получено: Sandbox unlocked/}) as HTMLInputElement).checked);
+  cleanup();
+  const reloaded = render(React.createElement(App));
+  assert.equal(document.documentElement.lang, 'ru');
+  assert.ok(reloaded.getByRole('heading', {name:'ДОСТИЖЕНИЯ'}));
+  assert.ok((reloaded.getByRole('checkbox', {name:/Получено: Sandbox unlocked/}) as HTMLInputElement).checked);
+  fireEvent.change(reloaded.getByRole('combobox', {name:'Язык'}), {target:{value:'en'}});
+  assert.equal(document.documentElement.lang, 'en');
+  assert.ok((reloaded.getByRole('checkbox', {name:/Obtained: Sandbox unlocked/}) as HTMLInputElement).checked);
+  dom.window.location.hash = '#/achievements?item=maid';
+  fireEvent(dom.window, new dom.window.Event('hashchange'));
+  const guide = reloaded.getByText('How to obtain · step-by-step guide').closest('details')!;
+  guide.open = true;
+  fireEvent(guide, new dom.window.Event('toggle'));
+  assert.ok(reloaded.getByText(/Behind the logs at TR3/));
+  fireEvent.click(reloaded.getByRole('checkbox', {name:'Step 1 completed'}));
+  fireEvent.change(reloaded.getByRole('combobox', {name:'Language'}), {target:{value:'ru'}});
+  assert.ok((reloaded.getByRole('checkbox', {name:'Шаг 1 выполнен'}) as HTMLInputElement).checked);
+  cleanup();
+ } finally { await rm(out, {force:true}); dom.window.close(); }
+});

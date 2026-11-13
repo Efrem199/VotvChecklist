@@ -2,110 +2,112 @@
 
 # ◈ VotV Checklist
 
-**Журнал обхода и справочник оператора для Voices of the Void**
+**An operator's field journal and reference for Voices of the Void**
 
-Отмечайте посещённые места, следите за коллекциями и достижениями,\
-а когда понадобится — ищите координаты и инструкции, не покидая сайт.
+Track visited locations, collections and achievements,\
+and find coordinates and instructions without leaving the site.
 
-[Открыть сайт](https://efrem199.github.io/VotvChecklist/) · [Возможности](#features) · [Скриншоты](#screenshots) · [Запуск](#development) · [Источники](#sources)
+[Open the site](https://efrem199.github.io/VotvChecklist/) · [Features](#features) · [Screenshots](#screenshots) · [Development](#development) · [Sources](#sources)
 
 </div>
 
-![Журнал обхода: прогресс, карта и список локаций](assets/readme/journal.png)
+![Interactive array map and route controls](assets/readme/journal.png)
 
-> **Неофициальный проект.** Данные и гайды пересказаны по вики сообщества и могут быть неполными или отличаться от вашей версии игры. Отметки на сайте не синхронизируются с игрой автоматически.
+> **Unofficial project.** Data and guides are summarized from the community wiki and may be incomplete or differ from your game version. Checkmarks on this site do not automatically synchronize with the game.
+>
+> **Languages:** English is the default, and the language selector also offers Russian. Built-in locations, rituals and all 91 available achievement guides (including detail sections and image captions) have English translations. User-created names, notes, edited columns and existing event history remain as entered. Some wiki links do not have a verified Russian counterpart; original sources are retained and labeled, and Russian counterparts may describe different versions.
 
 <a id="features"></a>
-## Возможности
+## Features
 
-### ◈ Журнал обхода
+### ◈ Field journal
 
-- **Интерактивная схема** с маркерами, масштабированием, группировкой близких точек и переходом к карточке.
-- **Тарелки, трансформаторы, радары, точки интереса и тайники**: координаты, заметки, условия и ссылки на источники там, где они известны.
-- **Маршрут** через выбранные точки и примерное расстояние по прямой, без учёта рельефа, с подсказками по подготовке.
-- **Гайды и отметки шагов в карточках точек**: Kerfur-Omega — в Alpha Hideout, удочка — в снастях рыбака. У связанных точек можно отмечать те же задачи, что и в гайде. Отдельного планировщика нет; достижение Upgrade ведёт к гайду Kerfur-Omega.
-- **Свои точки и настраиваемые отметки** — для собственных маршрутов и задач.
-- **Коллекции** с отдельным прогрессом: сэндвичи, Аргемии, черепа, плитки и инструменты. Есть фильтр ненайденных предметов.
-- Поиск, фильтры и **скрытие спойлеров**, чтобы управлять тем, что показывается на карте и в списке.
+- **Interactive map** with markers, zoom, clustering of nearby locations and links to location cards.
+- **Dishes, transformers, radars, points of interest and caches**: coordinates, notes, requirements and source links where known.
+- **Route planning** through selected locations, with approximate straight-line distance (terrain is not considered) and preparation tips.
+- **Guides and step checklists inside location cards**: Kerfur-Omega at Alpha Hideout and the fishing rod at the fisherman's equipment. Related locations share the same task checkmarks as the guide. There is no separate planner; the Upgrade achievement links to the Kerfur-Omega guide.
+- **Custom locations and configurable checkmarks** for your own routes and tasks.
+- **Collections** with separate progress for sandwiches, Argemias, skulls, tiles and tools, plus a filter for items not yet found.
+- Search, filters and **spoiler controls** for the map and list.
 
-### ★ Достижения и гайды
+### ★ Achievements and guides
 
-Отдельные списки общих достижений и advancements прохождения с ручными отметками, поиском и фильтрами. В карточках есть пошаговые гайды с ручными отметками, предупреждения и источники; для ряда инструкций — изображения непосредственно у нужных шагов и мест. Шаги относятся к выбранному профилю и не отмечают достижение автоматически.
+Separate lists of global achievements and per-save advancements offer manual checkmarks, search and filters. Cards include step-by-step guides with manual checklists, warnings and sources; some instructions have images next to the relevant steps and locations. Guide steps belong to the selected profile and do not unlock achievements in the game.
 
-Для сложных задач добавлены расширенные инструкции; подробный гайд Kerfur-Omega расположен в карточке Alpha Hideout в журнале, на него ссылается достижение Upgrade. Гайды основаны на вики и **не проверены в игре**; список достижений в источнике также помечен как незавершённый.
+More detailed instructions are available for complex tasks. The full Kerfur-Omega guide is in the Alpha Hideout card in the journal and is linked from the Upgrade achievement. Guides are based on the wiki and **have not been verified in-game**; the source's achievement list is also marked incomplete.
 
-### ▣ Экспериментальный редактор сохранений
+### ▣ Experimental save editor
 
-Редактор открывает файлы VotV **локально в браузере**, без отправки на сервер. Сейчас он рассчитан на семейство **0.9.0** и проверен на структуре примеров 0.9.0n; некоторые буквенные патчи не различаются по записанной в файле версии. **0.10.0 и другие версии не поддерживаются.** Заголовок GVAS можно посмотреть в диагностике даже для части неподдерживаемых файлов, но это не разрешает запись.
+The editor opens VotV files **locally in your browser**, without uploading them to a server. It currently targets the **0.9.0** family and has been checked against example 0.9.0n file structures; the version recorded in the file does not distinguish every lettered patch. **0.10.0 and other versions are not supported.** The GVAS header can be inspected for some unsupported files, but that does not enable editing them.
 
-| Файл | Что можно изменить |
+| File | What can be edited |
 | --- | --- |
-| `s_*.sav` | Очки, некоторые параметры персонажа, улучшения и правила; экспериментальные флаги advancements. |
-| `data.sav` | Экспериментальные флаги общих достижений. |
+| `s_*.sav` | Points, some character values, upgrades and rules; experimental advancement flags. |
+| `data.sav` | Experimental global achievement flags. |
 
 > [!CAUTION]
-> Перед редактированием **закройте игру и сделайте резервные копии обоих файлов**. Результат записи не проверен в игре. Флаги достижений показаны под внутренними ID: их связь с прогрессом и наградами не подтверждена, поэтому открытие предметов или наград не гарантируется. Инвентарь редактор не изменяет.
+> **Close the game and back up both files** before editing. Edited files have not been tested in-game. Achievement flags are shown by internal ID: their relationship to progress and rewards is unconfirmed, so unlocking items or rewards is not guaranteed. The editor does not change inventory contents.
 
-В редакторе выберите файл, измените доступные поля, просмотрите изменения и скачайте новую копию. Сайт **не перезаписывает** сохранение игры: заменить файл в папке игры нужно вручную. Неизменённые данные сохраняются побайтно.
+Choose a file, edit available fields, review your changes and download a new copy. The site **does not overwrite** your game save: replace the file in the game folder manually. Unchanged data is preserved byte for byte.
 
-### ✦ Команды и приколы
+### ✦ Commands and fun
 
-Справка по игровому терминалу, Funny rule, Sandbox и пасхалкам со ссылками на вики. Команды не проверены в игре; debug-команды и события могут изменить сохранение, поэтому сначала сделайте резервную копию.
+A reference for the in-game terminal, Funny rule, Sandbox and Easter eggs, with wiki links. Commands have not been tested in-game; debug commands and events can alter your save, so make a backup first.
 
 <a id="screenshots"></a>
-## Скриншоты
+## Screenshots
 
-| Гайд Kerfur-Omega в карточке точки | Достижение и отметки шагов |
+| Kerfur-Omega guide in a location card | Achievement and step checkmarks |
 | :---: | :---: |
-| [![Гайд Kerfur-Omega в карточке Alpha Hideout](assets/readme/kerfur-guide.png)](assets/readme/kerfur-guide.png) | [![Гайд достижения Maid с отмеченным шагом](assets/readme/achievements.png)](assets/readme/achievements.png) |
-| Карта и гайд с ручными отметками | Шаги, предупреждения и ссылки на иллюстрации |
+| [![Kerfur-Omega guide in the Alpha Hideout card](assets/readme/kerfur-guide.png)](assets/readme/kerfur-guide.png) | [![Maid achievement guide with a checked step](assets/readme/achievements.png)](assets/readme/achievements.png) |
+| Guide excerpt with manual checkmarks | Steps, warnings and links to illustrations |
 
-[Редактор сохранений — скриншот](assets/readme/save-editor.png)
+[Save editor screenshot](assets/readme/save-editor.png)
 
-Скриншоты сделаны в браузере с интерфейса проекта на демонстрационном профиле. На снимках показан вариант, когда изображения вики недоступны: остаются ссылки на страницы файлов. Для загрузки самих изображений нужно подключение к вики.
+Screenshots were taken in a browser using a demonstration profile; the save editor screenshot uses a synthetic example file, not a real save. The Kerfur-Omega image is an excerpt of the guide. Screenshots of guides show the fallback when wiki images are unavailable: links to the file pages remain visible. Loading the images themselves requires a connection to the wiki.
 
 <a id="storage"></a>
-## Прогресс и резервные копии
+## Progress and backups
 
-Данные журнала хранятся в `localStorage` браузера, а не в сохранении VotV. Разные браузеры, устройства и адреса сайта используют раздельное хранилище; очистка данных браузера может удалить отметки.
+Journal data is stored in your browser's `localStorage`, not in a VotV save. Different browsers, devices and site addresses use separate storage; clearing browser data can delete your checkmarks.
 
-| Данные | Где хранятся | Входят в экспорт профиля? |
+| Data | Storage | Included in profile export? |
 | --- | --- | --- |
-| Точки, заметки, ритуалы, шаги гайдов и настройки | В выбранном профиле браузера | Да |
-| Advancements прохождения | В выбранном профиле браузера | Да |
-| Общие достижения игры | Отдельно, общие для профилей | **Нет** |
+| Locations, notes, rituals, guide steps and settings | Selected browser profile | Yes |
+| Per-save advancements | Selected browser profile | Yes |
+| Global game achievements | Separate, shared across profiles | **No** |
 
-Кнопки **«Экспорт»** и **«Импорт»** относятся только к выбранному профилю. Для резервной копии нескольких профилей экспортируйте каждый отдельно. Импорт заменяет данные выбранного профиля, включая advancements; старый экспорт без advancements очистит их отметки. Общие достижения в экспорт не входят и при очистке браузера могут быть потеряны. Сброс журнала также очищает шаги гайдов, но не сбрасывает отметки достижений.
+**Export** and **Import** apply only to the selected profile. To back up multiple profiles, export each one separately. Import replaces the selected profile's data, including advancements; importing an older export without advancements clears those checkmarks. Global achievements are not included in the export and may be lost when browser data is cleared. Resetting the journal also clears guide steps but does not reset achievement checkmarks.
 
-Для файлов игры редактор предлагает скачать копию, но не хранит её в `localStorage`. Сохранения игры и JSON-экспорты журнала — **разные файлы**.
+The save editor downloads a copy of the game file but does not store it in `localStorage`. Game saves and JSON journal exports are **different files**.
 
 <a id="development"></a>
-## Локальный запуск
+## Local development
 
-Требуется **Node.js 20.19+ или 22.12+** и npm.
+Requires **Node.js 20.19+ or 22.12+** and npm.
 
 ```bash
-# Установить зависимости
+# Install dependencies
 npm ci
 
-# Запустить локальный сервер разработки
+# Start the local development server
 npm run dev
 ```
 
-Адрес сервера появится в терминале. Доступные команды:
+The server address appears in the terminal. Available commands:
 
 ```bash
-npm test           # тесты
-npm run typecheck  # проверка TypeScript
-npm run build      # проверка типов и production-сборка
-npm run preview    # просмотр собранной версии
+npm test           # tests
+npm run typecheck  # TypeScript checks
+npm run build      # type checks and production build
+npm run preview    # preview the production build
 ```
 
-### Сборка и GitHub Pages
+### Build and GitHub Pages
 
-`npm run build` создаёт автономный `dist/index.html`: стили, шрифты и фон встроены. Скриншоты из вики остаются внешними ссылками и могут быть недоступны без сети.
+`npm run build` creates a standalone `dist/index.html`, with styles, fonts and background embedded. Wiki screenshots remain external and may be unavailable without a network connection.
 
-В репозитории хранится опубликованная сборка `docs/index.html`. После изменений сайта обновите её и включите в коммит:
+The published build is kept in `docs/index.html`. After changing the site, update it and include it in the commit:
 
 ```bash
 npm run build
@@ -113,32 +115,32 @@ cp dist/index.html docs/index.html
 cmp dist/index.html docs/index.html
 ```
 
-CI запускает тесты и проверяет соответствие сборки файлу в `docs/`. Для GitHub Pages используйте сборку из `docs/`: при публикации корня репозитория корневой `index.html` перенаправляет на неё. Если публикуете из `main`, проверьте в настройках Pages, что выбран нужный источник и ветка.
+CI runs tests and checks that the build matches the file in `docs/`. For GitHub Pages, publish the build from `docs/`: if the repository root is published, the root `index.html` redirects to it. If publishing from `main`, verify the source and branch in the Pages settings.
 
-### Структура проекта
+### Project structure
 
 ```text
-src/components/  страницы и компоненты интерфейса
-src/data/        локации, коллекции, гайды и источники
-src/lib/         состояние, маршруты и редактор сохранений
-src/assets/      фон интерфейса
-tests/           тесты данных, интерфейса и редактора
-docs/index.html  готовая сборка для GitHub Pages
-assets/readme/   скриншоты для этой страницы
+src/components/  pages and interface components
+src/data/        locations, collections, guides and sources
+src/lib/         state, routes and save editor
+src/assets/      interface background
+tests/           data, UI and save editor tests
+docs/index.html  built page for GitHub Pages
+assets/readme/   screenshots used in this README
 ```
 
 <a id="sources"></a>
-## Источники и благодарности
+## Sources and acknowledgements
 
-Проект использует информацию сообщества [Voices of the Void Wiki](https://voicesofthevoid.wiki.gg/), в том числе:
+This project uses community information from the [Voices of the Void Wiki](https://voicesofthevoid.wiki.gg/), including:
 
-- [Руководство по достижениям](https://voicesofthevoid.wiki.gg/wiki/Guides/Achievements?oldid=25059)
-- [Инструменты и скрытые предметы](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Tools)
-- [Аргемии](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Argemia_Plushies)
-- [Сэндвичи, черепа и плитки](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Miscellaneous_Collectibles)
-- [Ритуалы](https://voicesofthevoid.wiki.gg/wiki/Secrets/Player-Activated/Rituals?oldid=25741)
+- [Achievement guide](https://voicesofthevoid.wiki.gg/wiki/Guides/Achievements?oldid=25059)
+- [Tools and hidden items](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Tools)
+- [Argemias](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Argemia_Plushies)
+- [Sandwiches, skulls and tiles](https://voicesofthevoid.wiki.gg/wiki/Secrets/Hidden_Items/Miscellaneous_Collectibles)
+- [Rituals](https://voicesofthevoid.wiki.gg/wiki/Secrets/Player-Activated/Rituals?oldid=25741)
 - [Kerfur-Omega](https://voicesofthevoid.wiki.gg/wiki/Kerfur-Omega)
 
-В карточках указаны источники и, где доступно, статус и дата сверки. Сверка с вики не означает проверку в игре. Координаты и условия могут измениться между версиями; если источники расходятся, в карточке может быть приведено несколько вариантов.
+Location cards list sources and, where available, review status and date. Checking against the wiki does not mean in-game verification. Coordinates and requirements may change between versions; where sources disagree, a card may list multiple possibilities.
 
-Voices of the Void и связанные с игрой изображения принадлежат их правообладателям. Проект не является официальным сайтом игры. Изображения вики загружаются с сайта вики и не копируются в репозиторий.
+Voices of the Void and related game images belong to their respective owners. This is not an official game website. Wiki images are loaded from the wiki and are not copied into this repository.
