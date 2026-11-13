@@ -16,7 +16,16 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Check mobile layouts in Chrome
-        run: npm run test:mobile
+        run: |
+          if npm run test:mobile > mobile-test.log 2>&1; then
+            cat mobile-test.log
+          else
+            cat mobile-test.log
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < mobile-test.log
+            exit 1
+          fi
         env:
           CHROMIUM_PATH: /usr/bin/google-chrome
       - run: npm run build
