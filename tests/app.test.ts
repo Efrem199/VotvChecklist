@@ -16,7 +16,7 @@ test('приложение переносит старые данные и из�
  dom.window.confirm = () => true;
  dom.window.prompt = () => 'Второе прохождение';
  dom.window.HTMLElement.prototype.scrollIntoView = () => {};
- const old=defaultState(); old.sound=false; old.progress['dish-b']={done:{visited:true},note:'старый журнал'}; old.progress['burger-server']={done:{found:true},note:'важный тайник'};
+ const old=defaultState(); old.sound=false; old.plannerSteps['omega:ai']=true; old.progress['dish-b']={done:{visited:true},note:'старый журнал'}; old.progress['burger-server']={done:{found:true},note:'важный тайник'};
  dom.window.localStorage.setItem(STORAGE_KEY,JSON.stringify(old));
  const out='.app-test-bundle.mjs';
  try {
@@ -96,6 +96,8 @@ test('приложение переносит старые данные и из�
   assert.ok(document.querySelector('#loc-burger-server'));
   fireEvent.click(collections().getByRole('button',{name:/Все точки/}));
   const planner=within(view.getByRole('region',{name:'Планировщик задач'}));
+  assert.equal((planner.getByRole('checkbox',{name:/Достать модуль Omega AI/}) as HTMLInputElement).checked,true);
+  assert.equal(planner.getByRole('link',{name:/Полный гайд, компоненты и места/}).getAttribute('href'),'#/journal?section=kerfur-omega');
   const step=planner.getByRole('checkbox',{name:/Alpha Hideout/}) as HTMLInputElement;
   fireEvent.click(step); assert.equal(step.checked,true);
   const routeSelect=view.getByLabelText('Добавить точку маршрута');
